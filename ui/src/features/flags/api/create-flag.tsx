@@ -6,6 +6,7 @@ import { api } from '../../../lib/api-client';
 import type { FeatureFlag } from '../../../types/api';
 
 export const createFlagSchema = z.object({
+  name: z.string().min(1, 'Flag name is required'),
   key: z.string().min(1, 'Flag key is required'),
   description: z.string().optional().default(''),
 });

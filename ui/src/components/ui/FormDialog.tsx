@@ -8,7 +8,7 @@ import {
 } from '@headlessui/react';
 import { X } from 'lucide-react';
 
-import { Fragment, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Button } from './Button';
 
 type FormDialogProps = {
@@ -17,6 +17,7 @@ type FormDialogProps = {
   children: ReactNode;
   isDone: boolean;
   submitButton: ReactNode;
+  onClose?: () => void;
 };
 
 export const FormDialog = ({
@@ -25,17 +26,21 @@ export const FormDialog = ({
   children,
   isDone,
   submitButton,
+  onClose,
 }: FormDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const open = () => setIsOpen(true);
-  const close = () => setIsOpen(false);
+  const close = useCallback(() => {
+    setIsOpen(false)
+    onClose?.();
+  }, [onClose]);
 
   useEffect(() => {
     if (isDone) {
       close();
     }
-  }, [isDone]);
+  }, [isDone, close]);
 
   return (
     <>
