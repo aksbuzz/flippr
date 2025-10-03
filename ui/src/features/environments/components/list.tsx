@@ -1,12 +1,16 @@
 // import { Settings2 } from 'lucide-react';
 // import { Chip } from '../../../components/ui/Chip';
+import { useParams } from 'react-router-dom';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useEnvironments } from '../api/get-environments';
 // import { Button } from '../../../components/ui/Button';
 
 export const ListEnvironments = () => {
-  const environmentsQuery = useEnvironments({ projectId: 1 });
+  const params = useParams();
+  const projectId = params.projectId as unknown as number;
+
+  const environmentsQuery = useEnvironments({ projectId });
 
   if (environmentsQuery.isLoading) {
     return (

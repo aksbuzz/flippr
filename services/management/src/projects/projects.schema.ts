@@ -7,7 +7,7 @@ export const createProjectSchema = z.object({
 export type CreateProjectSchema = z.infer<typeof createProjectSchema>;
 
 export const createEnvironmentSchema = z.object({
-  name: z.enum(['dev', 'staging', 'test', 'production', 'uat', 'qa']),
+  name: z.string().min(1, 'Environment name is required'),
 });
 
 export type CreateEnvironmentSchema = z.infer<typeof createEnvironmentSchema>;

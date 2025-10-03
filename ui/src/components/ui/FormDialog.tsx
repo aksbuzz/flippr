@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Dialog,
   DialogBackdrop,
@@ -34,13 +35,13 @@ export const FormDialog = ({
   const close = useCallback(() => {
     setIsOpen(false)
     onClose?.();
-  }, [onClose]);
+  }, []);
 
   useEffect(() => {
     if (isDone) {
       close();
     }
-  }, [isDone, close]);
+  }, [isDone]);
 
   return (
     <>

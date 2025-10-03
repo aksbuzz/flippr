@@ -9,6 +9,7 @@ import {
   useCreateProject,
   type CreateProjectSchema,
 } from '../api/create-project';
+import { Plus } from 'lucide-react';
 
 export const CreateProject = () => {
   const createProjectMutation = useCreateProject();
@@ -34,7 +35,11 @@ export const CreateProject = () => {
   return (
     <FormDialog
       title="Create new project"
-      triggerButton={<Button>Create Project</Button>}
+      triggerButton={
+        <Button variant={'secondary'} size="icon" className='border-0'>
+          <Plus className='size-4 text-dark' />
+        </Button>
+      }
       onClose={() => {
         setFormState({ name: '' });
         setErrors({ name: '' });

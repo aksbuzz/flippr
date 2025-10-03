@@ -1,5 +1,7 @@
-import { Outlet } from "react-router-dom";
-import { MainLayout } from "../../components/layouts/MainLayout";
+import { Outlet } from 'react-router-dom';
+import { MainLayout } from '../../components/layouts/MainLayout';
+import { Sidebar } from '../../components/layouts/Sidebar';
+import { ListProjects } from '../../features/projects/components/list';
 
 export const ErrorBoundary = () => {
   return <div>Something went wrong!</div>;
@@ -7,7 +9,13 @@ export const ErrorBoundary = () => {
 
 const AppRoot = () => {
   return (
-    <MainLayout>
+    <MainLayout
+      sidebar={
+        <Sidebar>
+          <ListProjects />
+        </Sidebar>
+      }
+    >
       <Outlet />
     </MainLayout>
   );

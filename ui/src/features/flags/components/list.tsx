@@ -1,12 +1,18 @@
 import { Settings2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+
+import { Button } from '../../../components/ui/Button';
 import { Chip } from '../../../components/ui/Chip';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Spinner } from '../../../components/ui/Spinner';
+
 import { useFlags } from '../api/get-flags';
-import { Button } from '../../../components/ui/Button';
 
 export const ListFlags = () => {
-  const flagsQuery = useFlags({ projectId: 1 });
+  const params = useParams();
+  const projectId = params.projectId as unknown as number;
+
+  const flagsQuery = useFlags({ projectId });
 
   if (flagsQuery.isLoading) {
     return (
