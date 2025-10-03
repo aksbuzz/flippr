@@ -8,7 +8,7 @@ export const getEnvironments = ({
 }: {
   projectId: number;
 }): Promise<{ data: Environment[] }> => {
-  return api.get(`/projects${projectId}/environments`);
+  return api.get(`/projects/${projectId}/environments`);
 };
 
 export function getEnvironmentsQueryOptions(projectId: number) {
