@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: flippr_postgres
+    environment:
+      POSTGRES_USER: flippr_user
+      POSTGRES_PASSWORD: flippr_password
+      POSTGRES_DB: flippr_db
+    ports:
+      - 5432:5432
+    volumes:
+      - flippr_postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    
+  redis:
+    image: redis:7-alpine
+    container_name: flippr_redis
+    ports:
+      - 6379:6379
+    volumes:
+      - flippr_redis_data:/data
+
+volumes:
+  flippr_postgres_data:
+  flippr_redis_data:
