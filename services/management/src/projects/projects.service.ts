@@ -26,6 +26,10 @@ export class ProjectsService {
     }
   }
 
+  async getProjects(): Promise<Project[]> {
+    return db.manyOrNone<Project>(`SELECT id, name, created_at FROM projects ORDER BY id ASC`);
+  }
+
   async createEnvironment(projectId: number, data: { name: string }): Promise<Environment> {
     const exists = await db.oneOrNone<Project>(`SELECT id FROM projects WHERE id = $1`, [
       projectId,
@@ -38,6 +42,13 @@ export class ProjectsService {
        VALUES ($1, $2, $3)
        RETURNING id, project_id, name, sdk_key`,
       [projectId, data.name, sdkKey]
+    );
+  }
+
+  async getEnvironments(projectId: number): Promise<Omit<Environment, 'sdk_key'>[]> {
+    return db.manyOrNone<Omit<Environment, 'sdk_key'>>(
+      `SELECT id, project_id, name FROM environments WHERE project_id = $1 ORDER BY id ASC`,
+      [projectId]
     );
   }
 

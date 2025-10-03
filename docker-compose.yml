@@ -20,6 +20,36 @@ services:
     volumes:
       - flippr_redis_data:/data
 
+  management-api:
+    build:
+      context: ./services/management
+    ports:
+      - 4000:4000
+    env_file:
+      - ./services/management/.env
+    depends_on:
+      - postgres
+      - redis
+  
+  evaluation-api:
+    build:
+      context: ./services/evaluation
+    ports:
+      - 8080:8080
+    env_file:
+      - ./services/evaluation/.env
+    depends_on:
+      - postgres
+      - redis
+
+  ui:
+    build:
+      context: ./ui
+    ports:
+      - 5173:5173
+    depends_on:
+      - management-api
+
 volumes:
   flippr_postgres_data:
   flippr_redis_data:

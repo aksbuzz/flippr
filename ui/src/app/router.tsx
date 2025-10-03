@@ -30,14 +30,14 @@ export const createAppRouter = (queryClient: QueryClient) =>
           path: '/flags',
           lazy: () => import('./routes/flags').then(convert(queryClient)),
         },
-        // {
-        //   path: '/projects',
-        //   lazy: () => import('./routes/projects').then(convert(queryClient)),
-        // },
-        // {
-        //   path: '/environments',
-        //   lazy: () => import('./routes/environments').then(convert(queryClient)),
-        // },
+        {
+          path: '/projects',
+          lazy: () => import('./routes/projects').then(convert(queryClient)),
+        },
+        {
+          path: '/environments',
+          lazy: () => import('./routes/environments').then(convert(queryClient)),
+        },
       ],
     },
     {

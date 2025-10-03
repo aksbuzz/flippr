@@ -14,3 +14,16 @@ export type FeatureFlags = FeatureFlag & {
     is_enabled: boolean;
   }[];
 };
+
+export interface Project {
+  id: number
+  name: string
+  created_at: Date
+}
+
+export interface Environment {
+  id: number;
+  project_id: number;
+  name: string;
+  sdk_key: string;
+}
