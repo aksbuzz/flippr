@@ -6,11 +6,11 @@ import http from 'http';
 
 import { httpLogger, logger } from './common';
 import { config } from './config';
+import { shutdownRedis } from './config/redis';
 import { environmentRoutes } from './environments';
 import { healthRoutes } from './health';
 import { errorHandler } from './middleware';
 import { projectRoutes } from './projects';
-import { initRedis, shutdownRedis } from './config/redis';
 
 const app: Application = express();
 const server = http.createServer(app);
@@ -59,7 +59,6 @@ const shutdown = (signal: string) => {
 
 const startServer = async () => {
   try {
-    await initRedis();
     server.listen(config.app.port, () => {
       logger.info(`Server started in ${config.app.env} mode on port ${config.app.port}`);
     });

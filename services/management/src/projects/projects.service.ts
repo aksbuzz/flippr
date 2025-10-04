@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { ConflictError, NotFoundError } from '../common/errors';
 import { db } from '../config/database';
+import { projectTasksQueue } from '../config/queue';
 import { Environment } from '../db/models/environment';
 import { FeatureFlag } from '../db/models/feature-flag';
 import { Project } from '../db/models/project';
@@ -37,12 +38,20 @@ export class ProjectsService {
     if (!exists) throw new NotFoundError('Project not found');
 
     const sdkKey = `${data.name}_sdk_key_${projectId}_${crypto.randomBytes(16).toString('hex')}`;
-    return db.one<Environment>(
+    const newEnvironment = await db.one<Environment>(
       `INSERT INTO environments (project_id, name, sdk_key)
        VALUES ($1, $2, $3)
        RETURNING id, project_id, name, sdk_key`,
       [projectId, data.name, sdkKey]
     );
+
+    await projectTasksQueue.add(
+      'link-new-environment',
+      { environmentId: newEnvironment.id, projectId: projectId },
+      { removeOnComplete: true, removeOnFail: 50 }
+    );
+
+    return newEnvironment;
   }
 
   async getEnvironments(projectId: string): Promise<Omit<Environment, 'sdk_key'>[]> {
@@ -85,8 +94,8 @@ export class ProjectsService {
       `SELECT f.id as flag_id, f.name as flag_name, f.key, f.description, f.created_at,
               e.id as env_id, e.name as env_name, s.is_enabled
        FROM feature_flags f
-       JOIN environment_flag_states s ON s.feature_flag_id = f.id
-       JOIN environments e ON e.id = s.environment_id
+       LEFT JOIN environment_flag_states s ON s.feature_flag_id = f.id
+       LEFT JOIN environments e ON e.id = s.environment_id
        WHERE f.project_id = $1
        ORDER BY f.id, e.id`,
       [projectId]
@@ -105,11 +114,14 @@ export class ProjectsService {
           environments: [],
         };
       }
-      grouped[row.flag_id].environments.push({
-        id: row.env_id,
-        name: row.env_name,
-        is_enabled: row.is_enabled,
-      });
+
+      if (row.env_id) {
+        grouped[row.flag_id].environments.push({
+          id: row.env_id,
+          name: row.env_name,
+          is_enabled: row.is_enabled,
+        });
+      }
     }
 
     return Object.values(grouped);
