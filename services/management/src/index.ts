@@ -21,7 +21,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
 app.use(compression());
-app.use(cors({ origin: ['http://localhost:3000', 'http://localhost:5173'], credentials: true }));
+app.use(
+  cors({
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost'],
+    credentials: true,
+  })
+);
 
 app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/projects', projectRoutes);
