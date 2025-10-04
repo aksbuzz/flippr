@@ -6,7 +6,7 @@ import { FeatureFlag } from '../db/models/feature-flag';
 import { Project } from '../db/models/project';
 
 interface FlagResponse extends FeatureFlag {
-  environments: { id: number; name: string; is_enabled: boolean }[];
+  environments: { id: string; name: string; is_enabled: boolean }[];
 }
 
 export class ProjectsService {
@@ -30,7 +30,7 @@ export class ProjectsService {
     return db.manyOrNone<Project>(`SELECT id, name, created_at FROM projects ORDER BY id ASC`);
   }
 
-  async createEnvironment(projectId: number, data: { name: string }): Promise<Environment> {
+  async createEnvironment(projectId: string, data: { name: string }): Promise<Environment> {
     const exists = await db.oneOrNone<Project>(`SELECT id FROM projects WHERE id = $1`, [
       projectId,
     ]);
@@ -45,7 +45,7 @@ export class ProjectsService {
     );
   }
 
-  async getEnvironments(projectId: number): Promise<Omit<Environment, 'sdk_key'>[]> {
+  async getEnvironments(projectId: string): Promise<Omit<Environment, 'sdk_key'>[]> {
     return db.manyOrNone<Omit<Environment, 'sdk_key'>>(
       `SELECT id, project_id, name FROM environments WHERE project_id = $1 ORDER BY id ASC`,
       [projectId]
@@ -53,7 +53,7 @@ export class ProjectsService {
   }
 
   async createFlag(
-    projectId: number,
+    projectId: string,
     data: { name: string; key: string; description: string }
   ): Promise<FeatureFlag> {
     return db.tx<FeatureFlag>(async tx => {
@@ -80,7 +80,7 @@ export class ProjectsService {
     });
   }
 
-  async getFlags(projectId: number): Promise<FlagResponse[]> {
+  async getFlags(projectId: string): Promise<FlagResponse[]> {
     const rows = await db.manyOrNone(
       `SELECT f.id as flag_id, f.name as flag_name, f.key, f.description, f.created_at,
               e.id as env_id, e.name as env_name, s.is_enabled
@@ -92,7 +92,7 @@ export class ProjectsService {
       [projectId]
     );
 
-    const grouped: Record<number, FlagResponse> = {};
+    const grouped: Record<string, FlagResponse> = {};
     for (const row of rows) {
       if (!grouped[row.flag_id]) {
         grouped[row.flag_id] = {

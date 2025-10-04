@@ -11,10 +11,9 @@ export const clientLoader =
   (queryClient: QueryClient) =>
   () =>
   async ({ params }: LoaderFunctionArgs) => {
-    const projectId = params.projectId as unknown as number;
+    const projectId = params.projectId as string;
 
     const query = getEnvironmentsQueryOptions(projectId);
-
     return queryClient.getQueryData(query.queryKey) ?? (await queryClient.fetchQuery(query));
   };
 

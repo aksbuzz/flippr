@@ -1,6 +1,6 @@
 export interface FeatureFlag {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   name: string;
   key: string;
   description: string;
@@ -8,8 +8,8 @@ export interface FeatureFlag {
 }
 
 export interface EnvironmentFlagState {
-  id: number;
-  environment_id: number;
-  feature_flag_id: number;
+  id: string;
+  environment_id: string;
+  feature_flag_id: string;
   is_enabled: boolean;
 }

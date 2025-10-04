@@ -12,7 +12,7 @@ export class EnvironmentController {
     next: NextFunction
   ) => {
     try {
-      const environmentId = parseInt(req.params.environmentId);
+      const environmentId = req.params.environmentId;
       const flagKey = req.params.flagKey;
 
       const flag = await this.environmentService.toggleFlag(

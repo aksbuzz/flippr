@@ -8,7 +8,7 @@ import { useEnvironments } from '../api/get-environments';
 
 export const ListEnvironments = () => {
   const params = useParams();
-  const projectId = params.projectId as unknown as number;
+  const projectId = params.projectId as string;
 
   const environmentsQuery = useEnvironments({ projectId });
 

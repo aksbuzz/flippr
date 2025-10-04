@@ -42,5 +42,17 @@ CREATE TABLE IF NOT EXISTS audit_log (
   old_state BOOLEAN NOT NULL,
   new_state BOOLEAN NOT NULL,
   -- user_id UUID NOT NULL,
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE feature_flags ADD CONSTRAINT unique_flag_key_per_project UNIQUE (project_id, key);
+ALTER TABLE environment_flag_states ADD CONSTRAINT unique_env_flag UNIQUE (environment_id, feature_flag_id);
+
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255),
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE audit_log ADD COLUMN user_id UUID REFERENCES users (id);

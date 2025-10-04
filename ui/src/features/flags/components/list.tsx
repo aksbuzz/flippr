@@ -1,17 +1,18 @@
 import { Settings2 } from 'lucide-react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-
 import { Button } from '../../../components/ui/Button';
 import { Chip } from '../../../components/ui/Chip';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Spinner } from '../../../components/ui/Spinner';
-
 import { useFlags } from '../api/get-flags';
+import { UpdateFlagState, type UpdateFlagStateProps } from './update';
 
 export const ListFlags = () => {
-  const params = useParams();
-  const projectId = params.projectId as unknown as number;
+  const [selectedFlagId, setSelectedFlagId] = useState<string | null>(null);
 
+  const params = useParams();
+  const projectId = params.projectId as string;
   const flagsQuery = useFlags({ projectId });
 
   if (flagsQuery.isLoading) {
@@ -23,7 +24,6 @@ export const ListFlags = () => {
   }
 
   const flags = flagsQuery.data?.data;
-  // TODO: show no flags available state
   if (!flags) return null;
 
   return (
@@ -51,7 +51,9 @@ export const ListFlags = () => {
             title: 'ENABLED IN ENVIRONMENTS',
             field: 'enabledCount',
             align: 'center',
-            Cell: ({ entry: { enabledCount } }) => <Chip>{`${enabledCount}/6 enabled`}</Chip>,
+            Cell: ({ entry: { enabledCount, environments } }) => (
+              <Chip>{`${enabledCount}/${environments.length} enabled`}</Chip>
+            ),
           },
           {
             title: 'ACTION',
@@ -62,7 +64,7 @@ export const ListFlags = () => {
                 size="icon"
                 variant="secondary"
                 className="border-0"
-                onClick={() => console.log(id)}
+                onClick={() => setSelectedFlagId(id)}
               >
                 <Settings2 className="cursor-pointer size-4 text-[#6B7280]" />
               </Button>
@@ -70,6 +72,18 @@ export const ListFlags = () => {
           },
         ]}
       />
+
+      {selectedFlagId && (
+        <UpdateFlagState
+          isOpen={!!selectedFlagId}
+          onClose={() => setSelectedFlagId(null)}
+          data={
+            flags.find(
+              flag => flag.id === selectedFlagId
+            ) as unknown as UpdateFlagStateProps['data']
+          }
+        />
+      )}
     </div>
   );
 };

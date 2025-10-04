@@ -17,7 +17,8 @@
     "pg-promise": "^12.2.0",
     "pino": "^9.13.0",
     "pino-http": "^10.5.0",
-    "pino-pretty": "^13.1.1"
+    "pino-pretty": "^13.1.1",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/compression": "^1.8.1",

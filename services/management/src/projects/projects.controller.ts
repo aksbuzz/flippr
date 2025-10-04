@@ -34,7 +34,7 @@ export class ProjectsController {
     next: NextFunction
   ) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const env = await this.projectsService.createEnvironment(projectId, req.body);
       res.status(201).json(okResponse(env));
     } catch (err: any) {
@@ -48,7 +48,7 @@ export class ProjectsController {
     next: NextFunction
   ) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const environments = await this.projectsService.getEnvironments(projectId);
       res.status(200).json(okResponse(environments));
     } catch (err: any) {
@@ -62,7 +62,7 @@ export class ProjectsController {
     next: NextFunction
   ) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const flag = await this.projectsService.createFlag(projectId, req.body);
       res.status(201).json(okResponse(flag));
     } catch (err: any) {
@@ -72,7 +72,7 @@ export class ProjectsController {
 
   getFlags = async (req: Request<{ projectId: string }>, res: Response, next: NextFunction) => {
     try {
-      const projectId = parseInt(req.params.projectId);
+      const projectId = req.params.projectId;
       const flags = await this.projectsService.getFlags(projectId);
       res.status(200).json(okResponse(flags));
     } catch (err: any) {

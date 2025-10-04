@@ -2,18 +2,25 @@ import { NotFoundError } from '../common';
 import { db } from '../config/database';
 import { redisClient } from '../config/redis';
 
-interface ToggleFlagResponse {
-  id: number;
-  env_id: number;
+type ToggleFlagDB = {
+  id: string;
+  project_id: string;
+  environment_id: string;
   sdk_key: string;
   key: string;
   is_enabled: boolean;
 }
 
+type ToggleFlagResponse = Omit<ToggleFlagDB, 'sdk_key'>
+
 export class EnvironmentService {
-  async toggleFlag(environmentId: number, flagKey: string, is_enabled: boolean) {
+  async toggleFlag(
+    environmentId: string,
+    flagKey: string,
+    is_enabled: boolean
+  ): Promise<ToggleFlagResponse> {
     return db.tx<ToggleFlagResponse>(async tx => {
-      const updated = await tx.oneOrNone<ToggleFlagResponse>(
+      const updated = await tx.oneOrNone<ToggleFlagDB>(
         `
         UPDATE environment_flag_states efs
         SET is_enabled = $3
@@ -22,7 +29,7 @@ export class EnvironmentService {
           AND efs.environment_id = e.id
           AND ff.key = $2
           AND e.id = $1
-        RETURNING efs.id, e.id AS env_id, e.sdk_key, ff.key, efs.is_enabled
+        RETURNING efs.id, ff.project_id, e.id AS environment_id, e.sdk_key, ff.key, efs.is_enabled
         `,
         [environmentId, flagKey, is_enabled]
       );
@@ -34,7 +41,9 @@ export class EnvironmentService {
       const redisKey = `flag:${updated.sdk_key}:${updated.key}`;
       await redisClient.set(redisKey, String(updated.is_enabled));
 
-      return updated;
+      const { sdk_key, ...response } = updated;
+
+      return response;
     });
   }
 }

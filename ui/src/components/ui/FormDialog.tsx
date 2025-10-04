@@ -17,7 +17,7 @@ type FormDialogProps = {
   title: string;
   children: ReactNode;
   isDone: boolean;
-  submitButton: ReactNode;
+  submitButton?: ReactNode;
   onClose?: () => void;
 };
 
@@ -33,7 +33,7 @@ export const FormDialog = ({
 
   const open = () => setIsOpen(true);
   const close = useCallback(() => {
-    setIsOpen(false)
+    setIsOpen(false);
     onClose?.();
   }, []);
 
@@ -64,7 +64,7 @@ export const FormDialog = ({
               >
                 <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
                   <div className="flex items-center justify-between">
-                    <DialogTitle as="h3" className="text-lg font-medium leading-6 text-slate-900">
+                    <DialogTitle as="h3" className="text-lg font-medium leading-6 text-dark">
                       {title}
                     </DialogTitle>
                     <button
@@ -79,12 +79,14 @@ export const FormDialog = ({
 
                   <div className="mt-4">{children}</div>
 
-                  <div className="mt-8 flex justify-end gap-3">
-                    <Button type="button" variant="secondary" onClick={close}>
-                      Cancel
-                    </Button>
-                    {submitButton}
-                  </div>
+                  {submitButton && (
+                    <div className="mt-8 flex justify-end gap-3">
+                      <Button type="button" variant="secondary" onClick={close}>
+                        Cancel
+                      </Button>
+                      {submitButton}
+                    </div>
+                  )}
                 </DialogPanel>
               </TransitionChild>
             </div>

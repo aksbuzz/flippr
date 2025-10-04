@@ -1,6 +1,6 @@
 export interface Environment {
-  id: number;
-  project_id: number;
+  id: string;
+  project_id: string;
   name: string;
   sdk_key: string;
 }

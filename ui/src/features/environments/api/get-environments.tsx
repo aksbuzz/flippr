@@ -6,12 +6,12 @@ import type { Environment } from '../../../types/api';
 export const getEnvironments = ({
   projectId,
 }: {
-  projectId: number;
+  projectId: string;
 }): Promise<{ data: Environment[] }> => {
   return api.get(`/projects/${projectId}/environments`);
 };
 
-export function getEnvironmentsQueryOptions(projectId: number) {
+export function getEnvironmentsQueryOptions(projectId: string) {
   return queryOptions({
     queryKey: ['environments', { projectId }],
     queryFn: () => getEnvironments({ projectId }),
@@ -19,7 +19,7 @@ export function getEnvironmentsQueryOptions(projectId: number) {
 }
 
 type UseEnvironment = {
-  projectId: number;
+  projectId: string;
   queryConfig?: QueryConfig<typeof getEnvironmentsQueryOptions>;
 };
 

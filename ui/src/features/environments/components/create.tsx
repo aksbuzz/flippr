@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { z } from 'zod';
 import { Button } from '../../../components/ui/Button';
 import { FieldSet } from '../../../components/ui/FieldSet';
@@ -11,6 +12,9 @@ import {
 } from '../api/create-environments';
 
 export const CreateEnvironment = () => {
+  const params = useParams();
+  const projectId = params.projectId as string;
+
   const createEnvironmentMutation = useCreateEnvironment();
 
   const [formState, setFormState] = useState<CreateEnvironmentSchema>({ name: '' });
@@ -26,7 +30,7 @@ export const CreateEnvironment = () => {
       setErrors({ name: '' });
     }
 
-    await createEnvironmentMutation.mutateAsync({ projectId: 1, data: { name: formState.name } });
+    await createEnvironmentMutation.mutateAsync({ projectId, data: { name: formState.name } });
 
     setFormState({ name: '' });
   }

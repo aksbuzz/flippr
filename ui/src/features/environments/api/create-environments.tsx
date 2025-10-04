@@ -15,7 +15,7 @@ export const createEnvironment = ({
   projectId,
   data,
 }: {
-  projectId: number;
+  projectId: string;
   data: CreateEnvironmentSchema;
 }): Promise<{ data: Environment }> => {
   return api.post(`/projects/${projectId}/environments`, data);
@@ -33,7 +33,7 @@ export const useCreateEnvironment = ({ mutationConfig }: UseMutationConfig = {})
   return useMutation({
     onSuccess: (data, ...args) => {
       queryClient.refetchQueries({
-        queryKey: getEnvironmentsQueryOptions(data.data?.id).queryKey,
+        queryKey: getEnvironmentsQueryOptions(data.data?.project_id).queryKey,
       });
       onSuccess?.(data, ...args);
     },

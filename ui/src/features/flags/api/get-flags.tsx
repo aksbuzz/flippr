@@ -9,7 +9,7 @@ export const getFlags = ({
   return api.get(`/projects/${projectId}/flags`);
 };
 
-export function getFlagsQueryOptions(projectId: number) {
+export function getFlagsQueryOptions(projectId: string) {
   return queryOptions({
     queryKey: ['flags', { projectId }],
     queryFn: () => getFlags({ projectId }),
@@ -17,7 +17,7 @@ export function getFlagsQueryOptions(projectId: number) {
 }
 
 type UseFlagsOptions = {
-  projectId: number;
+  projectId: string;
   queryConfig?: QueryConfig<typeof getFlagsQueryOptions>;
 };
 

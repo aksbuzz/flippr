@@ -17,7 +17,7 @@ export const createFlag = ({
   projectId,
   data,
 }: {
-  projectId: number;
+  projectId: string;
   data: CreateFlagSchema;
 }): Promise<{ data: FeatureFlag }> => {
   return api.post(`/projects/${projectId}/flags`, data);

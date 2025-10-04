@@ -1,10 +1,11 @@
 import { Flag, Folder, Settings } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '../../../utils/cn';
 import { useProjects } from '../api/get-projects';
 import { CreateProject } from './create';
 
 export const ListProjects = () => {
+  const location = useLocation();
   const projectsQuery = useProjects();
 
   if (projectsQuery.isLoading) {
