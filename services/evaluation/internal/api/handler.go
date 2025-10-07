@@ -57,7 +57,7 @@ func (h *HealthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type FlagEvaluationResponse struct {
-	Enabled bool `json:"enabled"`
+	Value interface{} `json:"value"`
 }
 
 type FlagEvaluationHandler struct {
@@ -85,19 +85,26 @@ func (h *FlagEvaluationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	val, err := h.RedisClient.Get(ctx, redisKey).Result()
 	if err != nil {
 		if err == redis.Nil {
-			composeResponse(w, false)
+			composeResponse(w, nil)
 			return
 		}
 
 		log.Printf("ERROR: Redis GET comman failed for key '%s': %v", redisKey, err)
-		composeResponse(w, false)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	composeResponse(w, val == "true")
+	var data interface{}
+	if err := json.Unmarshal([]byte(val), &data); err != nil {
+		log.Printf("ERROR: Failed to unmarshal data for key '%s', value %v, error: %v", redisKey, val, err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	composeResponse(w, data)
 }
 
-func composeResponse(w http.ResponseWriter, enabled bool) {
+func composeResponse(w http.ResponseWriter, value interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -108,7 +115,8 @@ func composeResponse(w http.ResponseWriter, enabled bool) {
 	w.Header().Del("Server")
 
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(FlagEvaluationResponse{Enabled: enabled}); err != nil {
+
+	if err := json.NewEncoder(w).Encode(FlagEvaluationResponse{Value: value}); err != nil {
 		log.Printf("ERROR: Failed to encode response: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

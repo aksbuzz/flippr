@@ -1,3 +1,7 @@
+interface APIResponse<T> {
+  value: T | null;
+}
+
 export interface FlipprClientOptions {
   sdkKey: string;
   baseUrl?: string;
@@ -5,7 +9,7 @@ export interface FlipprClientOptions {
 }
 
 interface CacheEntry {
-  value: boolean;
+  value: unknown;
   expiration: number;
 }
 
@@ -22,47 +26,51 @@ export class FlipprClient<TFlagKeys extends string = string> {
     }
 
     this.sdkKey = options.sdkKey;
-    this.baseUrl = options.baseUrl || 'https://api.flippr.io/';
+    this.baseUrl = (options.baseUrl || 'http://localhost:8080/').replace(/\/$/, '') + '/';
 
     this.cacheTTLSeconds = (options.cacheTTLSeconds ?? 300) * 1000;
   }
 
   /**
-   * Checks if a flag is enabled.
-   * @param {string} flagKey - The key of the flag to check.
-   * @returns Whether the flag is enabled.
+   * Returns the value of the specified flag key from the Flippr API.
+   *
+   * @template T
+   * @param {TFlagKeys} flagKey - The key of the flag to retrieve.
+   * @param {T} defaultValue - The default value to return if the flag key is not found or if the API request fails.
+   * @returns {Promise<T>} - A promise that resolves to the value of the specified flag key.
    */
-  public async isEnabled(flagKey: TFlagKeys, defaultValue: boolean = false): Promise<boolean> {
+  public async getVariant<T>(flagKey: TFlagKeys, defaultValue: T): Promise<T> {
     const cachedItem = this.cache.get(flagKey);
     if (cachedItem && cachedItem.expiration > Date.now()) {
-      console.log(`Using cached value for ${flagKey}`);
-      return cachedItem.value;
+      console.log(`[Flippr] Using cached value for ${flagKey}:`, cachedItem.value);
+      return cachedItem.value as T;
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/evaluate/flags/${flagKey}`, {
+      const response = await fetch(`${this.baseUrl}evaluate/${flagKey}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.sdkKey}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: this.sdkKey },
       });
 
       if (!response.ok) {
-        console.error(`Flippr API Error: ${response.status} ${response.statusText}`);
-        return false;
+        console.error(
+          `[Flippr] API Error for '${flagKey}': ${response.status} ${response.statusText}`
+        );
+        return defaultValue;
       }
 
-      const data = await response.json();
+      const data: APIResponse<T> = await response.json();
+
+      if (data.value === null) return defaultValue;
 
       this.cache.set(flagKey, {
-        value: data.enabled,
+        value: data.value,
         expiration: Date.now() + this.cacheTTLSeconds,
       });
 
-      return data.enabled;
+      return data.value;
     } catch (error) {
-      console.error('Flippr SDK Error: Failed to fetch evaluation.', error);
+      console.error(`[Flippr] SDK Error: Failed to fetch evaluation for '${flagKey}'.`, error);
       return defaultValue;
     }
   }

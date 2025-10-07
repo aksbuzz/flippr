@@ -11,12 +11,14 @@ export async function jobProcessor(job: any) {
 
     try {
       await db.none(
-        `INSERT INTO environment_flag_states (environment_id, feature_flag_id, is_enabled)
-            SELECT $1, f.id, false
-            FROM feature_flags f
-            WHERE f.project_id = $2
-            ON CONFLICT (environment_id, feature_flag_id) DO NOTHING
-            `,
+        `
+        INSERT INTO environment_flag_states 
+          (environment_id, feature_flag_id, is_enabled)
+        SELECT $1, f.id, false
+        FROM feature_flags f
+        WHERE f.project_id = $2
+        ON CONFLICT (environment_id, feature_flag_id) DO NOTHING
+        `,
         [environmentId, projectId]
       );
       logger.info(`Job ${job.id} processed successfully`);

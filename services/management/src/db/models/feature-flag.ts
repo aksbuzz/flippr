@@ -4,6 +4,8 @@ export interface FeatureFlag {
   name: string;
   key: string;
   description: string;
+  flag_type: "string" | "number" | "boolean" | "json";
+  off_value: string;
   created_at: Date;
 }
 

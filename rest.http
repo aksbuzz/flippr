@@ -1,0 +1,91 @@
+### Create Project
+POST http://localhost:4000/api/v1/projects HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "ECommerce"
+}
+
+### Get Projects
+GET http://localhost:4000/api/v1/projects HTTP/1.1
+
+### Create Environment
+POST http://localhost:4000/api/v1/projects/1a8c70e5-c3e5-4b01-8619-94bfc7641ef4/environments HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "Staging"
+}
+
+### Get Environments
+GET http://localhost:4000/api/v1/projects/1a8c70e5-c3e5-4b01-8619-94bfc7641ef4/environments HTTP/1.1
+
+### Create Flag - number
+POST http://localhost:4000/api/v1/projects/1a8c70e5-c3e5-4b01-8619-94bfc7641ef4/flags HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "API Rate Limit",
+  "key": "api-rate-limit",
+  "description": "Rate Limit for new api",
+  "flag_type": "number",
+  "off_value": "100"
+}
+
+### Create Flag - string
+POST http://localhost:4000/api/v1/projects/1a8c70e5-c3e5-4b01-8619-94bfc7641ef4/flags HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "New Checkout Button",
+  "key": "new-checkout-button",
+  "flag_type": "string",
+  "off_value": "\"Buy Now\""
+}
+
+### Create Flag - json
+POST http://localhost:4000/api/v1/projects/1a8c70e5-c3e5-4b01-8619-94bfc7641ef4/flags HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "UI Config",
+  "key": "ui-config",
+  "flag_type": "json",
+  "off_value": "{ \"showAlerts\" : true, \"theme\": \"light\" }"
+}
+
+### Get Flags
+GET http://localhost:4000/api/v1/projects/1a8c70e5-c3e5-4b01-8619-94bfc7641ef4/flags HTTP/1.1
+
+### Get Flag
+GET http://localhost:4000/api/v1/projects/1a8c70e5-c3e5-4b01-8619-94bfc7641ef4/flags/b70f3ccb-3bc8-46ec-917d-4d30a5e6f35e HTTP/1.1
+
+
+### Create Flag Variant
+POST http://localhost:4000/api/v1/flags/b70f3ccb-3bc8-46ec-917d-4d30a5e6f35e/variants HTTP/1.1
+Content-Type: application/json
+
+{
+  "key": "ui-config-no-alert-dark",
+  "value": "{ \"showAlerts\" : false, \"theme\": \"dark\" }"
+}
+
+
+### Get Flag Variants
+GET http://localhost:4000/api/v1/flags/b70f3ccb-3bc8-46ec-917d-4d30a5e6f35e/variants HTTP/1.1
+
+### Enable/Disable/Serve flag for enviornment
+
+PATCH http://localhost:4000/api/v1/flags/b70f3ccb-3bc8-46ec-917d-4d30a5e6f35e/environments/9625ed57-dec0-4723-a6b0-4f7bc5ca89d8 HTTP/1.1
+Content-Type: application/json
+
+{
+  "is_enabled": true,
+  "serving_variant_id": "14042f94-8d5f-4991-9d0e-c3b2a51a8ef4"
+}
+
+
+### Evaluate flag
+
+GET http://localhost:8080/api/v1/evaluate/flags/ui-config HTTP/1.1
+Authorization: Development_sdk_key_1a8c70e5-c3e5-4b01-8619-94bfc7641ef4_fe95c46fb57e485283b4bd1c8ca11ba8

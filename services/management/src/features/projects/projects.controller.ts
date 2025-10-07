@@ -1,13 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
-import { okResponse } from '../common';
-import { CreateEnvironmentSchema, CreateFlagSchema, CreateProjectSchema } from './projects.schema';
+import { okResponse } from '../../common';
 import { ProjectsService } from './projects.service';
+import { CreateEnvironment, CreateFlag, CreateProject } from './projects.types';
 
 export class ProjectsController {
   constructor(private readonly projectsService = new ProjectsService()) {}
 
   createProject = async (
-    req: Request<{}, any, CreateProjectSchema>,
+    req: Request<any, any, CreateProject>,
     res: Response,
     next: NextFunction
   ) => {
@@ -29,7 +29,7 @@ export class ProjectsController {
   };
 
   createEnvironment = async (
-    req: Request<{ projectId: string }, any, CreateEnvironmentSchema>,
+    req: Request<{ projectId: string }, any, CreateEnvironment>,
     res: Response,
     next: NextFunction
   ) => {
@@ -57,7 +57,7 @@ export class ProjectsController {
   };
 
   createFlag = async (
-    req: Request<{ projectId: string }, any, CreateFlagSchema>,
+    req: Request<{ projectId: string }, any, CreateFlag>,
     res: Response,
     next: NextFunction
   ) => {
@@ -75,6 +75,21 @@ export class ProjectsController {
       const projectId = req.params.projectId;
       const flags = await this.projectsService.getFlags(projectId);
       res.status(200).json(okResponse(flags));
+    } catch (err: any) {
+      next(err);
+    }
+  };
+
+  getFlag = async (
+    req: Request<{ projectId: string; flagId: string }>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const projectId = req.params.projectId;
+      const flagId = req.params.flagId;
+      const flag = await this.projectsService.getFlag(projectId, flagId);
+      res.status(200).json(okResponse(flag));
     } catch (err: any) {
       next(err);
     }

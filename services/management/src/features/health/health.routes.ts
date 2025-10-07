@@ -1,7 +1,7 @@
 import express from 'express';
-import { db } from '../config/database';
-import { redisClient } from '../config/redis';
-import { okResponse } from '../common';
+import { okResponse } from '../../common';
+import { db } from '../../config/database';
+import { redisClient } from '../../config/redis';
 
 const router = express.Router();
 

@@ -7,10 +7,10 @@ import http from 'http';
 import { httpLogger, logger } from './common';
 import { config } from './config';
 import { shutdownRedis } from './config/redis';
-import { environmentRoutes } from './environments';
-import { healthRoutes } from './health';
+import { flagsRoutes } from './features/flags';
+import { healthRoutes } from './features/health';
 import { errorHandler } from './middleware';
-import { projectRoutes } from './projects';
+import { projectRoutes } from './features/projects';
 
 const app: Application = express();
 const server = http.createServer(app);
@@ -30,7 +30,7 @@ app.use(
 
 app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/projects', projectRoutes);
-app.use('/api/v1/environments', environmentRoutes);
+app.use('/api/v1/flags', flagsRoutes);
 
 app.use(errorHandler);
 

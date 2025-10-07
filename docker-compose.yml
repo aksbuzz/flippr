@@ -22,53 +22,53 @@ services:
       - flippr_redis_data:/data
     restart: unless-stopped
 
-  management-api:
-    container_name: flippr_management_server
-    build:
-      context: ./services/management
-    command: npm run start:server
-    ports:
-      - "${PORT:-4000}:4000"
-    env_file:
-      - ./services/management/.env
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
+  # management-api:
+  #   container_name: flippr_management_server
+  #   build:
+  #     context: ./services/management
+  #   command: npm run start:server
+  #   ports:
+  #     - "${PORT:-4000}:4000"
+  #   env_file:
+  #     - ./services/management/.env
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   restart: unless-stopped
 
-  management-worker:
-    container_name: flippr_management_worker
-    build:
-      context: ./services/management
-    command: npm run start:worker
-    env_file:
-      - ./services/management/.env
-    depends_on:
-      - postgres
-      - redis
+  # management-worker:
+  #   container_name: flippr_management_worker
+  #   build:
+  #     context: ./services/management
+  #   command: npm run start:worker
+  #   env_file:
+  #     - ./services/management/.env
+  #   depends_on:
+  #     - postgres
+  #     - redis
   
-  evaluation-api:
-    container_name: flippr_evaluation_server
-    build:
-      context: ./services/evaluation
-    ports:
-      - "8080:8080"
-    env_file:
-      - ./services/evaluation/.env
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
+  # evaluation-api:
+  #   container_name: flippr_evaluation_server
+  #   build:
+  #     context: ./services/evaluation
+  #   ports:
+  #     - "8080:8080"
+  #   env_file:
+  #     - ./services/evaluation/.env
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   restart: unless-stopped
 
-  ui:
-    build:
-      context: ./ui
-    container_name: flippr_ui
-    ports:
-      - 80:80
-    depends_on:
-      - management-api
-    restart: unless-stopped
+  # ui:
+  #   build:
+  #     context: ./ui
+  #   container_name: flippr_ui
+  #   ports:
+  #     - 80:80
+  #   depends_on:
+  #     - management-api
+  #   restart: unless-stopped
 
 volumes:
   flippr_postgres_data:
