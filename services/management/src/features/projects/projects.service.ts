@@ -214,7 +214,7 @@ export class ProjectsService {
       key: first.flag_key,
       description: first.description,
       flag_type: first.flag_type,
-      off_variant_value: first.off_variant_value,
+      off_value: first.off_value,
       created_at: first.flag_created_at,
       variants: Array.from(variantsMap.values()),
       environments: Array.from(envMap.values()),

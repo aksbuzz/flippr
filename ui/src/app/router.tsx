@@ -43,7 +43,16 @@ export const createAppRouter = (queryClient: QueryClient) =>
             },
             {
               path: 'flags',
-              lazy: () => import('./routes/flags').then(convert(queryClient)),
+              children: [
+                {
+                  index: true,
+                  lazy: () => import('./routes/flags').then(convert(queryClient)),
+                },
+                {
+                  path: ':flagId',
+                  lazy: () => import('./routes/flag').then(convert(queryClient)),
+                }
+              ],
             },
             {
               path: 'environments',

@@ -2,76 +2,51 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { api } from '../../../lib/api-client';
 import type { MutationConfig } from '../../../lib/react-query';
-import type { EnvironmentFlagState, FeatureFlags } from '../../../types/api';
-import { getFlagsQueryOptions } from './get-flags';
+import type { EnvironmentFlagStateResponse } from '../../../types/api';
+import { getFlagQueryOptions } from './get-flag';
 
-export const updateFlagSchema = z.object({
-  is_enabled: z.boolean(),
-});
+export const updateFlagStateSchema = z.discriminatedUnion('is_enabled', [
+  z.object({
+    is_enabled: z.literal(true),
+    serving_variant_id: z.string().uuid('Must be a valid variant UUID'),
+  }),
+  z.object({ is_enabled: z.literal(false) }),
+]);
 
-export type UpdateFlagSchema = z.infer<typeof updateFlagSchema>;
+export type UpdateFlagStateSchema = z.infer<typeof updateFlagStateSchema>;
 
 type UpdateFlagStateParams = {
-  projectId: string;
   environmentId: string;
-  flagKey: string;
-  data: UpdateFlagSchema;
+  flagId: string;
+  data: UpdateFlagStateSchema;
 };
 
 export const updateFlagState = ({
   environmentId,
-  flagKey,
+  flagId,
   data,
-}: Omit<UpdateFlagStateParams, 'projectId'>): Promise<{ data: EnvironmentFlagState }> => {
-  return api.patch(`/environments/${environmentId}/flags/${flagKey}`, data);
+}: UpdateFlagStateParams): Promise<{ data: EnvironmentFlagStateResponse }> => {
+  return api.patch(`/flags/${flagId}/environments/${environmentId}`, data);
 };
 
 type UseMutationConfig = {
+  projectId: string;
   mutationConfig?: MutationConfig<typeof updateFlagState>;
 };
 
-export const useUpdateFlagState = ({ mutationConfig }: UseMutationConfig = {}) => {
+export const useUpdateFlagState = ({ mutationConfig, projectId }: UseMutationConfig) => {
   const queryClient = useQueryClient();
 
+  const { onSuccess, ...restConfig } = mutationConfig || {};
+
   return useMutation({
-    ...mutationConfig,
+    onSuccess(data, ...args) {
+      queryClient.refetchQueries({
+        queryKey: getFlagQueryOptions(projectId, data.data.flag_id).queryKey,
+      });
+      onSuccess?.(data, ...args);
+    },
+    ...restConfig,
     mutationFn: updateFlagState,
-    onMutate: async (newData: UpdateFlagStateParams) => {
-      const { projectId, flagKey, environmentId, data } = newData;
-      const queryKey = getFlagsQueryOptions(projectId).queryKey;
-
-      await queryClient.cancelQueries({ queryKey });
-      const previousFlagsData = queryClient.getQueryData<{ data: FeatureFlags[] }>(queryKey);
-
-      if (previousFlagsData) {
-        queryClient.setQueryData<{ data: FeatureFlags[] }>(queryKey, {
-          ...previousFlagsData,
-          data: previousFlagsData.data.map(flag =>
-            flag.key === flagKey
-              ? {
-                  ...flag,
-                  environments: flag.environments.map(env =>
-                    env.id === environmentId ? { ...env, is_enabled: data.is_enabled } : env
-                  ),
-                }
-              : flag
-          ),
-        });
-      }
-
-      return { previousFlagsData };
-    },
-    onError: (_, newData, context) => {
-      const { projectId } = newData;
-      const queryKey = getFlagsQueryOptions(projectId).queryKey;
-      if (context?.previousFlagsData) {
-        queryClient.setQueryData(queryKey, context.previousFlagsData);
-      }
-    },
-    onSettled: (_, _2, newData) => {
-      const { projectId } = newData;
-      const queryKey = getFlagsQueryOptions(projectId).queryKey;
-      queryClient.invalidateQueries({ queryKey });
-    },
   });
 };

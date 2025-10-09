@@ -4,7 +4,7 @@ import { forwardRef, useId, type SelectHTMLAttributes } from 'react';
 import { cn } from '../../utils/cn';
 
 export interface SelectFieldProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
+  label?: string;
   hint?: string;
   error?: string;
 }
@@ -17,9 +17,11 @@ const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(
 
     return (
       <Field>
-        <Label htmlFor={id} className="block text-sm font-medium text-slate-700">
-          {label}
-        </Label>
+        {label && (
+          <Label htmlFor={id} className="block text-sm font-medium text-slate-700">
+            {label}
+          </Label>
+        )}
         <div className="relative mt-1">
           <Select
             id={id}
@@ -28,6 +30,7 @@ const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(
               'block w-full appearance-none rounded-md border shadow-sm transition-colors',
               'pl-3 pr-8 py-2 text-slate-900 placeholder:text-slate-400',
               'focus:outline-none focus:ring-2 focus:ring-offset-1',
+              'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500',
               {
                 'border-slate-300 hover:border-purple-400 focus:border-purple-500 focus:ring-purple-500':
                   !hasError,

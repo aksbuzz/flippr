@@ -106,7 +106,7 @@ export class FlagsService {
         flag_id: flagId,
         environment_id: environmentId,
         is_enabled: data.is_enabled,
-        serving_variant_id: data.is_enabled ? data.serving_variant_id : null,
+        serving_variant_id: data.is_enabled ? data.serving_variant_id : updated.serving_variant_id,
       };
     });
   }

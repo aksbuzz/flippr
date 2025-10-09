@@ -1,10 +1,8 @@
-// import { Settings2 } from 'lucide-react';
-// import { Chip } from '../../../components/ui/Chip';
 import { useParams } from 'react-router-dom';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useEnvironments } from '../api/get-environments';
-// import { Button } from '../../../components/ui/Button';
+import { CopyButton } from '../../../components/ui/CopyButton';
 
 export const ListEnvironments = () => {
   const params = useParams();
@@ -34,7 +32,16 @@ export const ListEnvironments = () => {
             field: 'name',
             Cell: ({ entry: { name } }) => <span className="font-semibold">{name}</span>,
           },
-          // TODO: add total flags, etc.
+          {
+            title: 'SDK KEY',
+            field: 'sdk_key',
+            Cell: ({ entry: { sdk_key } }) => (
+              <div className="flex items-center gap-4">
+                {sdk_key}
+                <CopyButton text={sdk_key} />
+              </div>
+            ),
+          },
         ]}
       />
     </div>

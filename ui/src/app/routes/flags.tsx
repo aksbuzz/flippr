@@ -5,6 +5,7 @@ import { CreateFlag } from '../../features/flags/components/create';
 import { ListFlags } from '../../features/flags/components/list';
 import { getFlagsQueryOptions } from '../../features/flags/api/get-flags';
 import type { LoaderFunctionArgs } from 'react-router';
+import { useDocumentTitle } from '../../hooks';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const clientLoader =
@@ -18,6 +19,8 @@ export const clientLoader =
   };
 
 const FlagsRoutes = () => {
+  useDocumentTitle('Flippr - Flags')
+
   return (
     <ContentLayout title="Flags" subTitle='Manage your feature flags'>
       <div className="flex justify-end">

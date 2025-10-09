@@ -1,17 +1,15 @@
-import { Settings2 } from 'lucide-react';
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Settings } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button';
 import { Chip } from '../../../components/ui/Chip';
 import { DataTable } from '../../../components/ui/DataTable';
 import { Spinner } from '../../../components/ui/Spinner';
 import { useFlags } from '../api/get-flags';
-import { UpdateFlagState, type UpdateFlagStateProps } from './update';
 
 export const ListFlags = () => {
-  const [selectedFlagId, setSelectedFlagId] = useState<string | null>(null);
-
+  const navigate = useNavigate();
   const params = useParams();
+
   const projectId = params.projectId as string;
   const flagsQuery = useFlags({ projectId });
 
@@ -44,15 +42,22 @@ export const ListFlags = () => {
             field: 'key',
           },
           {
-            title: 'DESCRIPTION',
-            field: 'description',
+            title: 'FLAG TYPE',
+            field: 'flag_type',
+            Cell: ({ entry: { flag_type } }) => (
+              <span>{flag_type.charAt(0).toUpperCase() + flag_type.slice(1)}</span>
+            ),
           },
           {
-            title: 'ENABLED IN ENVIRONMENTS',
+            title: 'STATUS',
             field: 'enabledCount',
             align: 'center',
             Cell: ({ entry: { enabledCount, environments } }) => (
-              <Chip>{`${enabledCount}/${environments.length} enabled`}</Chip>
+              <Chip>
+                {enabledCount === 0
+                  ? 'Disabled in all environments'
+                  : `Enabled in ${enabledCount}/${environments.length} environments`}
+              </Chip>
             ),
           },
           {
@@ -64,26 +69,14 @@ export const ListFlags = () => {
                 size="icon"
                 variant="secondary"
                 className="border-0"
-                onClick={() => setSelectedFlagId(id)}
+                onClick={() => navigate(`/projects/${projectId}/flags/${id}`)}
               >
-                <Settings2 className="cursor-pointer size-4 text-[#6B7280]" />
+                <Settings className="cursor-pointer size-4 text-[#6B7280]" />
               </Button>
             ),
           },
         ]}
       />
-
-      {selectedFlagId && (
-        <UpdateFlagState
-          isOpen={!!selectedFlagId}
-          onClose={() => setSelectedFlagId(null)}
-          data={
-            flags.find(
-              flag => flag.id === selectedFlagId
-            ) as unknown as UpdateFlagStateProps['data']
-          }
-        />
-      )}
     </div>
   );
 };

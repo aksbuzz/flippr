@@ -5,11 +5,58 @@ import { z } from 'zod';
 import { api } from '../../../lib/api-client';
 import type { FeatureFlag } from '../../../types/api';
 
-export const createFlagSchema = z.object({
-  name: z.string().min(1, 'Flag name is required'),
-  key: z.string().min(1, 'Flag key is required'),
-  description: z.string().optional().default(''),
-});
+export const createFlagSchema = z
+  .object({
+    name: z.string().min(1, 'Flag name is required'),
+    key: z.string().min(1, 'Flag key is required'),
+    flag_type: z.enum(['boolean', 'string', 'number', 'json']).default('boolean'),
+    off_value: z.string().min(1, 'Off value is required'),
+  })
+  .superRefine((data, ctx) => {
+    switch (data.flag_type) {
+      case 'boolean':
+        if (data.off_value !== 'true' && data.off_value !== 'false') {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Off value must be true or false',
+            path: ['off_value'],
+          });
+        }
+        break;
+
+      case 'number':
+        if (isNaN(Number(data.off_value)) || data.off_value.trim() === '') {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Off value must be a valid number',
+            path: ['off_value'],
+          });
+        }
+        break;
+
+      case 'string':
+        break;
+
+      case 'json':
+        try {
+          const parsed = JSON.parse(data.off_value);
+          if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'Off value must be a valid JSON object',
+              path: ['off_value'],
+            });
+          }
+        } catch {
+          ctx.addIssue({
+            code: 'custom',
+            message: 'Off value must be valid JSON',
+            path: ['off_value'],
+          });
+        }
+        break;
+    }
+  });
 
 export type CreateFlagSchema = z.infer<typeof createFlagSchema>;
 

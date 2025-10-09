@@ -1,11 +1,11 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
-import type { QueryConfig } from '../../../lib/react-query';
 import { api } from '../../../lib/api-client';
-import type { FeatureFlags } from '../../../types/api';
+import type { QueryConfig } from '../../../lib/react-query';
+import type { FeatureFlagsResponse } from '../../../types/api';
 
 export const getFlags = ({
   projectId,
-}: Pick<UseFlagsOptions, 'projectId'>): Promise<{ data: FeatureFlags[] }> => {
+}: Pick<UseFlagsOptions, 'projectId'>): Promise<{ data: FeatureFlagsResponse[] }> => {
   return api.get(`/projects/${projectId}/flags`);
 };
 

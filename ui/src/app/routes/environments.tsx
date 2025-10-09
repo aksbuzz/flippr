@@ -5,6 +5,7 @@ import { CreateEnvironment } from '../../features/environments/components/create
 import { ListEnvironments } from '../../features/environments/components/list';
 import { getEnvironmentsQueryOptions } from '../../features/environments/api/get-environments';
 import type { LoaderFunctionArgs } from 'react-router';
+import { useDocumentTitle } from '../../hooks';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const clientLoader =
@@ -18,6 +19,8 @@ export const clientLoader =
   };
 
 const EnvironmentsRoutes = () => {
+  useDocumentTitle('Flippr - Environments');
+
   return (
     <ContentLayout title="Environments" subTitle="Manage your environments">
       <div className="flex justify-end">
