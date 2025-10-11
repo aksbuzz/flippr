@@ -12,11 +12,10 @@ import { healthRoutes } from './features/health';
 import { errorHandler } from './middleware';
 import { projectRoutes } from './features/projects';
 
-const app: Application = express();
+export const app: Application = express();
 const server = http.createServer(app);
 
 app.use(httpLogger);
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(helmet());
@@ -73,4 +72,6 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}

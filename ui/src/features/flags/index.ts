@@ -1,0 +1,1 @@
+export { getFlagQueryOptions } from './api/get-flag'

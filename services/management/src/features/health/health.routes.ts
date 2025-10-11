@@ -11,7 +11,7 @@ router.get('/', async (_, res) => {
   const timestamp = new Date().toISOString();
   const uptime = process.uptime();
 
-  const [dbRes, redisRes] = await Promise.allSettled([db.query('SELECT 1'), redisClient.connect()]);
+  const [dbRes, redisRes] = await Promise.allSettled([db.query('SELECT 1'), redisClient.ping()]);
   const services: { database: HealthStatus; redis: HealthStatus } = {
     database: dbRes.status === 'fulfilled' ? 'OK' : 'ERROR',
     redis: redisRes.status === 'fulfilled' ? 'OK' : 'ERROR',

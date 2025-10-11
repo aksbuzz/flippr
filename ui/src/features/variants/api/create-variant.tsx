@@ -5,6 +5,8 @@ import type { MutationConfig } from '../../../lib/react-query';
 import type { FlagType } from '../../../types';
 import type { FlagVariant } from '../../../types/api';
 import { getVariantsQueryOptions } from './get-variants';
+import { getFlagQueryOptions } from '../../flags';
+import { useParams } from 'react-router-dom';
 
 export const createVariantSchema = (flagType: FlagType) =>
   z
@@ -75,6 +77,9 @@ type UseMutationConfig = {
 };
 
 export const useCreateVariant = ({ mutationConfig }: UseMutationConfig = {}) => {
+  const params = useParams();
+  const projectId = params.projectId as string;
+  
   const queryClient = useQueryClient();
 
   const { onSuccess, ...restConfig } = mutationConfig || {};
@@ -83,6 +88,9 @@ export const useCreateVariant = ({ mutationConfig }: UseMutationConfig = {}) => 
     onSuccess: (data, ...args) => {
       queryClient.refetchQueries({
         queryKey: getVariantsQueryOptions(data.data.feature_flag_id).queryKey,
+      });
+      queryClient.refetchQueries({
+        queryKey: getFlagQueryOptions(projectId, args[0].flagId).queryKey,
       });
       onSuccess?.(data, ...args);
     },

@@ -13,7 +13,7 @@ const defaultFormState: CreateFlagSchema = {
   name: '',
   key: '',
   flag_type: 'boolean',
-  off_value: '',
+  off_value: 'false',
 };
 
 const defaultFormErrors: Record<keyof CreateFlagSchema, string> = {
@@ -53,7 +53,10 @@ export const CreateFlag = () => {
         name: formState.name,
         key: formState.key,
         flag_type: formState.flag_type,
-        off_value: formState.off_value,
+        off_value:
+          formState.flag_type === 'string'
+            ? JSON.stringify(formState.off_value)
+            : formState.off_value,
       },
     });
 
@@ -67,7 +70,7 @@ export const CreateFlag = () => {
         newOffValue = 'false';
         break;
       case 'string':
-        newOffValue = '""';
+        newOffValue = '';
         break;
       case 'number':
         newOffValue = '0';
@@ -188,7 +191,7 @@ export const CreateFlag = () => {
           <option value="number">Number</option>
           <option value="json">JSON</option>
         </SelectField>
-        
+
         {renderOffValueField()}
       </FieldSet>
     </FormDialog>

@@ -12,9 +12,13 @@ import {
   type CreateVariantSchema,
 } from '../api/create-variant';
 
-const defaultFormState: CreateVariantSchema = {
-  key: '',
-  value: '',
+const defaultFormState = (flagType: FlagType) => {
+  let value: string = '';
+  if (flagType === 'boolean') value = 'false';
+  else if (flagType === 'json') value = '{}';
+  else if (flagType === 'number') value = '0';
+
+  return { value, key: '' };
 };
 
 const defaultFormErrors: Record<keyof CreateVariantSchema, string> = {
@@ -25,7 +29,7 @@ const defaultFormErrors: Record<keyof CreateVariantSchema, string> = {
 export const CreateVariant = ({ flagId, flagType }: { flagId: string; flagType: FlagType }) => {
   const createVariantMutation = useCreateVariant();
 
-  const [formState, setFormState] = useState<CreateVariantSchema>(defaultFormState);
+  const [formState, setFormState] = useState<CreateVariantSchema>(defaultFormState(flagType));
   const [errors, setErrors] =
     useState<Record<keyof CreateVariantSchema, string>>(defaultFormErrors);
 
@@ -42,9 +46,12 @@ export const CreateVariant = ({ flagId, flagType }: { flagId: string; flagType: 
       setErrors(defaultFormErrors);
     }
 
-    await createVariantMutation.mutateAsync({ flagId, data: formState });
-
-    setFormState(defaultFormState);
+    const payload = {
+      ...formState,
+      value: flagType === 'string' ? JSON.stringify(formState.value) : formState.value,
+    };
+    await createVariantMutation.mutateAsync({ flagId, data: payload });
+    setFormState(defaultFormState(flagType));
   }
 
   function renderValueField() {
@@ -109,7 +116,7 @@ export const CreateVariant = ({ flagId, flagType }: { flagId: string; flagType: 
       title="Create new variant"
       triggerButton={<Button>Create Variant</Button>}
       onClose={() => {
-        setFormState(defaultFormState);
+        setFormState(defaultFormState(flagType));
         setErrors(defaultFormErrors);
       }}
       submitButton={
