@@ -1,10 +1,10 @@
-import z from 'zod';
+import { z } from 'zod';
 
 const flagVariantKeySchema = z.string().min(1, 'Flag variant key is required');
-const flagIdSchema = z.string().min(1, 'Flag id is required');
+const flagIdSchema = z.string().uuid();
 
 /** Get flag variants */
-export const getFlagVariantsParamsSchema = z.object({ flagId: z.string() });
+export const getFlagVariantsParamsSchema = z.object({ flagId: z.string().uuid() });
 
 /** Create flag variant */
 export const createFlagVariantParamsSchema = getFlagVariantsParamsSchema;
@@ -30,13 +30,13 @@ export const createFlagVariantBodySchema = z.object({
 /** Delete flag variant */
 export const deleteFlagVariantParamsSchema = z.object({
   flagId: flagIdSchema,
-  variantId: z.string(),
+  variantId: z.string().uuid(),
 });
 
 /** Update flag state */
 export const updateFlagStateParamsSchema = z.object({
   flagId: flagIdSchema,
-  environmentId: z.string(),
+  environmentId: z.string().uuid(),
 })
 export const updateFlagStateBodySchema = z.discriminatedUnion('is_enabled', [
   z.object({

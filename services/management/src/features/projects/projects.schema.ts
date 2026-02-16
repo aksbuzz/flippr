@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const projectIdSchema = z.object({ projectId: z.string() });
+export const projectIdSchema = z.object({ projectId: z.string().uuid() });
 
 export const createProjectBodySchema = z.object({
   name: z.string().min(1, 'Project name is required'),
@@ -32,4 +32,9 @@ export const createFlagBodySchema = z.object({
   ),
 });
 
-export const getFlagParamSchema = z.object({ projectId: z.string(), flagId: z.string() });
+export const getFlagParamSchema = z.object({ projectId: z.string().uuid(), flagId: z.string().uuid() });
+
+export const paginationQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});

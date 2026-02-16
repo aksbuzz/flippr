@@ -168,7 +168,6 @@ describe('Project Integration Tests', () => {
 
   describe('POST /api/v1/projects/:projectId/flags', () => {
     it('should create a new feature flag', async () => {
-      console.log(projectId);
       const response = await request(app).post(`/api/v1/projects/${projectId}/flags`).send({
         name: 'New Feature',
         key: 'new_feature',

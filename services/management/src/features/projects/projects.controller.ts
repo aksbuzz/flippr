@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { okResponse } from '../../common';
+import { okResponse, paginatedResponse } from '../../common';
 import { ProjectsService } from './projects.service';
 import { CreateEnvironment, CreateFlag, CreateProject } from './projects.types';
 
@@ -19,10 +19,11 @@ export class ProjectsController {
     }
   };
 
-  getProjects = async (_: Request, res: Response, next: NextFunction) => {
+  getProjects = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const projects = await this.projectsService.getProjects();
-      res.status(200).json(okResponse(projects));
+      const { limit, offset } = req.query as unknown as { limit: number; offset: number };
+      const { data, total } = await this.projectsService.getProjects(limit, offset);
+      res.status(200).json(paginatedResponse(data, total, limit, offset));
     } catch (error) {
       next(error);
     }
@@ -49,8 +50,9 @@ export class ProjectsController {
   ) => {
     try {
       const projectId = req.params.projectId;
-      const environments = await this.projectsService.getEnvironments(projectId);
-      res.status(200).json(okResponse(environments));
+      const { limit, offset } = req.query as unknown as { limit: number; offset: number };
+      const { data, total } = await this.projectsService.getEnvironments(projectId, limit, offset);
+      res.status(200).json(paginatedResponse(data, total, limit, offset));
     } catch (err: any) {
       next(err);
     }
@@ -73,8 +75,9 @@ export class ProjectsController {
   getFlags = async (req: Request<{ projectId: string }>, res: Response, next: NextFunction) => {
     try {
       const projectId = req.params.projectId;
-      const flags = await this.projectsService.getFlags(projectId);
-      res.status(200).json(okResponse(flags));
+      const { limit, offset } = req.query as unknown as { limit: number; offset: number };
+      const { data, total } = await this.projectsService.getFlags(projectId, limit, offset);
+      res.status(200).json(paginatedResponse(data, total, limit, offset));
     } catch (err: any) {
       next(err);
     }

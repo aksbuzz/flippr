@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS environment_flag_states (
   FOREIGN KEY (environment_id) REFERENCES environments (id) ON DELETE CASCADE,
   FOREIGN KEY (feature_flag_id) REFERENCES feature_flags (id) ON DELETE CASCADE,
   FOREIGN KEY (serving_variant_id) REFERENCES feature_flag_variants (id),
-  CONSTRAINT unique_environment_flag UNIQUE (environment_id, feature_flag_id)
+  CONSTRAINT unique_environment_flag UNIQUE (environment_id, feature_flag_id),
+  CONSTRAINT enabled_requires_variant CHECK (is_enabled = FALSE OR serving_variant_id IS NOT NULL)
 );
 
 CREATE INDEX IF NOT EXISTS environment_flag_states_feature_flag_id_idx ON environment_flag_states (feature_flag_id);

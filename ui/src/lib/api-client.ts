@@ -8,10 +8,9 @@ api.interceptors.response.use(
   response => {
     return response.data;
   },
-  // error => {
-  //   // const message = error?.response?.error || error?.message;
-  //   // show notif
-
-  //   return Promise.reject(error);
-  // }
+  error => {
+    // const message = error?.response?.error || error?.message;
+    // show notif
+    return Promise.reject(error);
+  }
 );

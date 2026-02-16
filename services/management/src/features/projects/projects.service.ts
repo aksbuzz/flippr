@@ -28,8 +28,15 @@ export class ProjectsService {
     }
   }
 
-  async getProjects() {
-    return db.manyOrNone<Project>(`SELECT id, name, created_at FROM projects ORDER BY id ASC`);
+  async getProjects(limit: number, offset: number) {
+    const [data, count] = await Promise.all([
+      db.manyOrNone<Project>(
+        `SELECT id, name, created_at FROM projects ORDER BY id ASC LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      ),
+      db.one<{ total: string }>(`SELECT COUNT(*) AS total FROM projects`),
+    ]);
+    return { data, total: parseInt(count.total, 10) };
   }
 
   async createEnvironment(projectId: string, data: CreateEnvironment) {
@@ -55,15 +62,21 @@ export class ProjectsService {
     return newEnvironment;
   }
 
-  async getEnvironments(projectId: string) {
-    return db.manyOrNone<Environment>(
-      `
-      SELECT id, sdk_key, project_id, name 
-      FROM environments 
-      WHERE project_id = $1 
-      ORDER BY id ASC`,
-      [projectId]
-    );
+  async getEnvironments(projectId: string, limit: number, offset: number) {
+    const [data, count] = await Promise.all([
+      db.manyOrNone<Environment>(
+        `SELECT id, sdk_key, project_id, name
+         FROM environments
+         WHERE project_id = $1
+         ORDER BY id ASC LIMIT $2 OFFSET $3`,
+        [projectId, limit, offset]
+      ),
+      db.one<{ total: string }>(
+        `SELECT COUNT(*) AS total FROM environments WHERE project_id = $1`,
+        [projectId]
+      ),
+    ]);
+    return { data, total: parseInt(count.total, 10) };
   }
 
   async createFlag(projectId: string, data: CreateFlag) {
@@ -96,10 +109,23 @@ export class ProjectsService {
     });
   }
 
-  async getFlags(projectId: string) {
+  async getFlags(projectId: string, limit: number, offset: number) {
+    const [count, flagRows] = await Promise.all([
+      db.one<{ total: string }>(
+        `SELECT COUNT(*) AS total FROM feature_flags WHERE project_id = $1`,
+        [projectId]
+      ),
+      db.manyOrNone(
+        `SELECT id FROM feature_flags WHERE project_id = $1 ORDER BY id ASC LIMIT $2 OFFSET $3`,
+        [projectId, limit, offset]
+      ),
+    ]);
+
+    if (!flagRows.length) return { data: [], total: parseInt(count.total, 10) };
+
+    const flagIds = flagRows.map(r => r.id);
     const rows = await db.manyOrNone(
-      `
-      SELECT 
+      `SELECT
         f.id as flag_id,
         f.name as flag_name,
         f.key,
@@ -110,9 +136,9 @@ export class ProjectsService {
       FROM feature_flags f
       LEFT JOIN environment_flag_states s ON s.feature_flag_id = f.id
       LEFT JOIN environments e ON e.id = s.environment_id
-      WHERE f.project_id = $1
+      WHERE f.id IN ($1:csv)
       ORDER BY f.id, e.id`,
-      [projectId]
+      [flagIds]
     );
 
     const grouped: Record<string, FlagResponse> = {};
@@ -138,86 +164,45 @@ export class ProjectsService {
       }
     }
 
-    return Object.values(grouped);
+    return { data: Object.values(grouped), total: parseInt(count.total, 10) };
   }
 
   async getFlag(projectId: string, flagId: string) {
-    const rows = await db.manyOrNone(
-      `
-      SELECT 
-        f.id as flag_id,
-        f.project_id,
-        f.name AS flag_name,
-        f.key AS flag_key,
-        f.description AS flag_description,
-        f.flag_type,
-        f.off_value,
-        f.created_at AS flag_created_at,
-        
-        v.id AS variant_id,
-        v.key AS variant_key,
-        v.value AS variant_value,
-        v.description AS variant_description,
-        v.created_at AS variant_created_at,
-        
-        e.id AS env_id,
-        e.name AS env_name,
-        s.is_enabled,
-        s.serving_variant_id,
-        sv.key AS serving_variant_key
-
-      FROM feature_flags f
-      LEFT JOIN feature_flag_variants v ON v.feature_flag_id = f.id
-      LEFT JOIN environments e ON e.project_id = f.project_id
-      LEFT JOIN environment_flag_states s ON s.environment_id = e.id AND s.feature_flag_id = f.id
-      LEFT JOIN feature_flag_variants sv ON sv.id = s.serving_variant_id
-      WHERE f.project_id = $1 AND f.id = $2
-      ORDER BY v.created_at ASC, e.name ASC;
-      `,
+    const flag = await db.oneOrNone<FeatureFlag>(
+      `SELECT id, project_id, name, key, description, flag_type, off_value, created_at
+       FROM feature_flags
+       WHERE project_id = $1 AND id = $2`,
       [projectId, flagId]
     );
 
-    if (!rows.length) throw new NotFoundError('Flag not found');
+    if (!flag) throw new NotFoundError('Flag not found');
 
-    const first = rows[0];
-
-    const variantsMap = new Map<string, any>();
-    for (const r of rows) {
-      if (r.variant_id && !variantsMap.has(r.variant_id)) {
-        variantsMap.set(r.variant_id, {
-          id: r.variant_id,
-          key: r.variant_key,
-          value: r.variant_value,
-          description: r.variant_description,
-          created_at: r.variant_created_at,
-        });
-      }
-    }
-
-    const envMap = new Map<string, any>();
-    for (const r of rows) {
-      if (r.env_id && !envMap.has(r.env_id)) {
-        envMap.set(r.env_id, {
-          id: r.env_id,
-          name: r.env_name,
-          is_enabled: r.is_enabled ?? false,
-          serving_variant_id: r.serving_variant_id,
-          serving_variant_key: r.serving_variant_key,
-        });
-      }
-    }
+    const [variants, environments] = await Promise.all([
+      db.manyOrNone(
+        `SELECT id, key, value, description, created_at
+         FROM feature_flag_variants
+         WHERE feature_flag_id = $1
+         ORDER BY created_at ASC`,
+        [flagId]
+      ),
+      db.manyOrNone(
+        `SELECT e.id, e.name, s.is_enabled, s.serving_variant_id, sv.key AS serving_variant_key
+         FROM environments e
+         LEFT JOIN environment_flag_states s ON s.environment_id = e.id AND s.feature_flag_id = $1
+         LEFT JOIN feature_flag_variants sv ON sv.id = s.serving_variant_id
+         WHERE e.project_id = $2
+         ORDER BY e.name ASC`,
+        [flagId, projectId]
+      ),
+    ]);
 
     return {
-      id: first.flag_id,
-      project_id: first.project_id,
-      name: first.flag_name,
-      key: first.flag_key,
-      description: first.description,
-      flag_type: first.flag_type,
-      off_value: first.off_value,
-      created_at: first.flag_created_at,
-      variants: Array.from(variantsMap.values()),
-      environments: Array.from(envMap.values()),
+      ...flag,
+      variants,
+      environments: environments.map(e => ({
+        ...e,
+        is_enabled: e.is_enabled ?? false,
+      })),
     };
   }
 }

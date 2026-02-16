@@ -6,6 +6,7 @@ import {
   createFlagBodySchema,
   createProjectBodySchema,
   getFlagParamSchema,
+  paginationQuerySchema,
   projectIdSchema,
 } from './projects.schema';
 
@@ -13,7 +14,7 @@ const router = express.Router();
 const projectsController = new ProjectsController();
 
 router.post('/', validate({ body: createProjectBodySchema }), projectsController.createProject);
-router.get('/', projectsController.getProjects);
+router.get('/', validate({ query: paginationQuerySchema }), projectsController.getProjects);
 
 router.post(
   '/:projectId/environments',
@@ -22,7 +23,7 @@ router.post(
 );
 router.get(
   '/:projectId/environments',
-  validate({ params: projectIdSchema }),
+  validate({ params: projectIdSchema, query: paginationQuerySchema }),
   projectsController.getEnvironments
 );
 
@@ -31,7 +32,7 @@ router.post(
   validate({ params: projectIdSchema, body: createFlagBodySchema }),
   projectsController.createFlag
 );
-router.get('/:projectId/flags', validate({ params: projectIdSchema }), projectsController.getFlags);
+router.get('/:projectId/flags', validate({ params: projectIdSchema, query: paginationQuerySchema }), projectsController.getFlags);
 router.get(
   '/:projectId/flags/:flagId',
   validate({ params: getFlagParamSchema }),

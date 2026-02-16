@@ -1,0 +1,9 @@
+node_modules
+dist
+tests
+.env
+*.md
+.git
+.gitignore
+vitest.config.ts
+tsconfig.json

@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from 'zod';
 import { createFlagVariantBodySchema, updateFlagStateBodySchema } from "./flags.schema";
 
 export type CreateFlagVariant = z.infer<typeof createFlagVariantBodySchema>

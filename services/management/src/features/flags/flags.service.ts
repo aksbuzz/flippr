@@ -1,4 +1,4 @@
-import { NotFoundError } from '../../common';
+import { BadRequestError, NotFoundError } from '../../common';
 import { db } from '../../config/database';
 import { redisClient } from '../../config/redis';
 import { Environment } from '../../db/models/environment';
@@ -43,6 +43,12 @@ export class FlagsService {
     ]);
     if (!exists) throw new NotFoundError('Flag not found');
 
+    const inUse = await db.oneOrNone(
+      `SELECT 1 FROM environment_flag_states WHERE serving_variant_id = $1`,
+      [variantId]
+    );
+    if (inUse) throw new BadRequestError('Cannot delete variant that is currently being served');
+
     await db.none(`DELETE FROM feature_flag_variants WHERE id = $1`, [variantId]);
   }
 
@@ -56,12 +62,12 @@ export class FlagsService {
     }
 
     return db.tx(async tx => {
-      const flag = await db.oneOrNone<FeatureFlag>(`SELECT * FROM feature_flags WHERE id = $1`, [
+      const flag = await tx.oneOrNone<FeatureFlag>(`SELECT * FROM feature_flags WHERE id = $1`, [
         flagId,
       ]);
       if (!flag) throw new NotFoundError('Flag not found');
 
-      const env = await db.oneOrNone<Environment>(`SELECT * FROM environments WHERE id = $1`, [
+      const env = await tx.oneOrNone<Environment>(`SELECT * FROM environments WHERE id = $1`, [
         environmentId,
       ]);
       if (!env) throw new NotFoundError('Environment not found');
