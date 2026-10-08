@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "repository": {
@@ -29,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^24.6.2",
     "tsup": "^8.5.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }
