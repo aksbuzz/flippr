@@ -9,8 +9,9 @@ import {
 } from '@headlessui/react';
 import { X } from 'lucide-react';
 
-import { Fragment, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from './Button';
+import { ErrorMessage } from './ErrorPanel';
 
 type FormDialogProps = {
   triggerButton: ReactNode;
@@ -19,6 +20,10 @@ type FormDialogProps = {
   isDone: boolean;
   submitButton?: ReactNode;
   onClose?: () => void;
+  /** Called when the form is submitted (button click or Enter). */
+  onSubmit?: () => void;
+  /** Failure to display inside the dialog (e.g. a mutation error). */
+  error?: unknown;
 };
 
 export const FormDialog = ({
@@ -28,14 +33,26 @@ export const FormDialog = ({
   isDone,
   submitButton,
   onClose,
+  onSubmit,
+  error,
 }: FormDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   const open = () => setIsOpen(true);
   const close = useCallback(() => {
     setIsOpen(false);
-    onClose?.();
+    onCloseRef.current?.();
   }, []);
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    onSubmit?.();
+  }
 
   useEffect(() => {
     if (isDone) {
@@ -77,16 +94,20 @@ export const FormDialog = ({
                     </button>
                   </div>
 
-                  <div className="mt-4">{children}</div>
+                  <form onSubmit={handleSubmit} noValidate>
+                    <div className="mt-4">{children}</div>
 
-                  {submitButton && (
-                    <div className="mt-8 flex justify-end gap-3">
-                      <Button type="button" variant="secondary" onClick={close}>
-                        Cancel
-                      </Button>
-                      {submitButton}
-                    </div>
-                  )}
+                    {error != null && <ErrorMessage error={error} className="mt-4" />}
+
+                    {submitButton && (
+                      <div className="mt-8 flex justify-end gap-3">
+                        <Button type="button" variant="secondary" onClick={close}>
+                          Cancel
+                        </Button>
+                        {submitButton}
+                      </div>
+                    )}
+                  </form>
                 </DialogPanel>
               </TransitionChild>
             </div>

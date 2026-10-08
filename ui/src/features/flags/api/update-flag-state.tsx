@@ -40,10 +40,14 @@ export const useUpdateFlagState = ({ mutationConfig, projectId }: UseMutationCon
   const { onSuccess, ...restConfig } = mutationConfig || {};
 
   return useMutation({
-    onSuccess(data, ...args) {
-      queryClient.refetchQueries({
-        queryKey: getFlagQueryOptions(projectId, data.data.flag_id).queryKey,
-      });
+    async onSuccess(data, ...args) {
+      // awaited so the mutation stays pending until the UI shows fresh data
+      await Promise.all([
+        queryClient.refetchQueries({
+          queryKey: getFlagQueryOptions(projectId, data.data.flag_id).queryKey,
+        }),
+        queryClient.invalidateQueries({ queryKey: ['flags'] }),
+      ]);
       onSuccess?.(data, ...args);
     },
     ...restConfig,

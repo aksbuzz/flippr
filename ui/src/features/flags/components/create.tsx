@@ -32,7 +32,7 @@ export const CreateFlag = () => {
   const [formState, setFormState] = useState<CreateFlagSchema>(defaultFormState);
   const [errors, setErrors] = useState<Record<keyof CreateFlagSchema, string>>(defaultFormErrors);
 
-  async function handleSubmit() {
+  function handleSubmit() {
     const result = createFlagSchema.safeParse(formState);
     if (!result.success) {
       const formattedErrors = result.error.format();
@@ -47,7 +47,7 @@ export const CreateFlag = () => {
       setErrors(defaultFormErrors);
     }
 
-    await createFlagMutation.mutateAsync({
+    createFlagMutation.mutate({
       projectId,
       data: {
         name: formState.name,
@@ -59,8 +59,6 @@ export const CreateFlag = () => {
             : formState.off_value,
       },
     });
-
-    setFormState(defaultFormState);
   }
 
   function handleFlagTypeChange(newType: FlagType) {
@@ -146,9 +144,12 @@ export const CreateFlag = () => {
       onClose={() => {
         setFormState(defaultFormState);
         setErrors(defaultFormErrors);
+        createFlagMutation.reset();
       }}
+      onSubmit={handleSubmit}
+      error={createFlagMutation.error}
       submitButton={
-        <Button type="submit" onClick={handleSubmit} isLoading={createFlagMutation.isPending}>
+        <Button type="submit" isLoading={createFlagMutation.isPending}>
           Submit
         </Button>
       }
@@ -164,7 +165,11 @@ export const CreateFlag = () => {
             setFormState({
               ...formState,
               name: e.target.value,
-              key: e.target.value.toLowerCase().split(' ').join('-'),
+              key: e.target.value
+                .toLowerCase()
+                .replace(/[^a-z0-9._-]+/g, '-')
+                .replace(/^[^a-z0-9]+/, '')
+                .slice(0, 100),
             })
           }
           error={errors.name}

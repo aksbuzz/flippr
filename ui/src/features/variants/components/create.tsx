@@ -33,7 +33,7 @@ export const CreateVariant = ({ flagId, flagType }: { flagId: string; flagType: 
   const [errors, setErrors] =
     useState<Record<keyof CreateVariantSchema, string>>(defaultFormErrors);
 
-  async function handleSubmit() {
+  function handleSubmit() {
     const result = createVariantSchema(flagType).safeParse(formState);
     if (!result.success) {
       const formattedErrors = result.error.format();
@@ -50,8 +50,7 @@ export const CreateVariant = ({ flagId, flagType }: { flagId: string; flagType: 
       ...formState,
       value: flagType === 'string' ? JSON.stringify(formState.value) : formState.value,
     };
-    await createVariantMutation.mutateAsync({ flagId, data: payload });
-    setFormState(defaultFormState(flagType));
+    createVariantMutation.mutate({ flagId, data: payload });
   }
 
   function renderValueField() {
@@ -118,9 +117,12 @@ export const CreateVariant = ({ flagId, flagType }: { flagId: string; flagType: 
       onClose={() => {
         setFormState(defaultFormState(flagType));
         setErrors(defaultFormErrors);
+        createVariantMutation.reset();
       }}
+      onSubmit={handleSubmit}
+      error={createVariantMutation.error}
       submitButton={
-        <Button type="submit" onClick={handleSubmit} isLoading={createVariantMutation.isPending}>
+        <Button type="submit" isLoading={createVariantMutation.isPending}>
           Submit
         </Button>
       }
