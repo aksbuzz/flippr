@@ -5,14 +5,17 @@ import (
 )
 
 type RedisConfig struct {
-	Address string
-	DB      int
+	Address  string
+	Password string
+	DB       int
 }
 
 func NewRedisClient(cfg RedisConfig) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr: cfg.Address, DB: cfg.DB},
-	)
+		Addr:     cfg.Address,
+		Password: cfg.Password,
+		DB:       cfg.DB,
+	})
 
 	return client, nil
 }

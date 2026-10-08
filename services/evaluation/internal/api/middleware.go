@@ -1,31 +1,70 @@
 package api
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type ctxKeyLogger struct{}
+// statusRecorder captures the status code so the access log can report it.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
 
-func LogginMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func LoggingMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		requestID := uuid.New().String()
+		w.Header().Set("X-Request-Id", requestID)
 
-		requestLogger := logger.With(
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+
+		logger.Info("Request completed",
 			"request_id", requestID,
 			"method", r.Method,
 			"path", r.URL.Path,
+			"status", rec.status,
+			"duration", time.Since(start),
 		)
+	})
+}
 
-		ctx := context.WithValue(r.Context(), ctxKeyLogger{}, requestLogger)
+// CORS lets browsers call the API from the allowed origins. With no allowed origins it is a
+// no-op. Credentials are never allowed: the SDK key travels in the Authorization header.
+func CORS(next http.Handler, allowedOrigins []string) http.Handler {
+	if len(allowedOrigins) == 0 {
+		return next
+	}
+	allowAll := slices.Contains(allowedOrigins, "*")
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" && (allowAll || slices.Contains(allowedOrigins, origin)) {
+			if allowAll {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			} else {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Add("Vary", "Origin")
+			}
 
-		requestLogger.Info("Request completed", "duration", time.Since(start))
+			if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+				w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+				w.Header().Set("Access-Control-Max-Age", "600")
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
 	})
 }
