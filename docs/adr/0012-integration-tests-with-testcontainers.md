@@ -39,7 +39,7 @@ them.
 - Require a running Docker daemon.
 - Coverage gaps remain: the BullMQ worker's job handlers, the UI (no test runner at all) and the
   rare commit-failure path are untested. Migration scripts are only verified by hand.
-- `.github/workflows/ci.yml` runs every suite and the smoke test, but it has not yet run on GitHub.
+- `.github/workflows/ci.yml` runs every suite and the smoke test, but automatic runs are disabled (manual `workflow_dispatch` only) and it has not yet run on GitHub.
 
 ## History
 

@@ -1,9 +1,12 @@
 name: CI
 
+# Automatic runs are disabled for now; trigger manually from the Actions tab.
+# To re-enable, replace `workflow_dispatch:` with:
+#   push:
+#     branches: [main]
+#   pull_request:
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   management:
