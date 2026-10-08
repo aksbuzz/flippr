@@ -1,14 +1,23 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { MutationConfig } from '../../../lib/react-query';
-import { getFlagsQueryOptions } from './get-flags';
 import { z } from 'zod';
 import { api } from '../../../lib/api-client';
 import type { FeatureFlag } from '../../../types/api';
 
 export const createFlagSchema = z
   .object({
-    name: z.string().min(1, 'Flag name is required'),
-    key: z.string().min(1, 'Flag key is required'),
+    name: z
+      .string()
+      .min(1, 'Flag name is required')
+      .max(100, 'Flag name must be at most 100 characters'),
+    key: z
+      .string()
+      .min(1, 'Flag key is required')
+      .max(100, 'Flag key must be at most 100 characters')
+      .regex(
+        /^[A-Za-z0-9][A-Za-z0-9._-]*$/,
+        'Use letters, numbers, ".", "_" or "-", starting with a letter or number (no spaces)'
+      ),
     flag_type: z.enum(['boolean', 'string', 'number', 'json']).default('boolean'),
     off_value: z.string().min(1, 'Off value is required'),
   })
@@ -81,9 +90,7 @@ export const useCreateFlag = ({ mutationConfig }: UseMutationConfig = {}) => {
 
   return useMutation({
     onSuccess: (data, ...args) => {
-      queryClient.refetchQueries({
-        queryKey: getFlagsQueryOptions(data.data.project_id).queryKey,
-      });
+      queryClient.invalidateQueries({ queryKey: ['flags'] });
       onSuccess?.(data, ...args);
     },
     ...restConfig,

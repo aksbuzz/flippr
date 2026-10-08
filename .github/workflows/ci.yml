@@ -1,0 +1,95 @@
+name: CI
+
+# Automatic runs are disabled for now; trigger manually from the Actions tab.
+# To re-enable, replace `workflow_dispatch:` with:
+#   push:
+#     branches: [main]
+#   pull_request:
+on:
+  workflow_dispatch:
+
+jobs:
+  management:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/management
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/management/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+      # Testcontainers starts Postgres and Redis; Docker is available on ubuntu runners.
+      - run: npm test
+
+  evaluation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/evaluation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/evaluation/go.mod
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test ./...
+
+  ui:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ui/package-lock.json
+      - run: npm ci
+      - run: npx eslint .
+      - run: npm run build
+
+  sdk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/js-sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sdk/js-sdk/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  # Builds every image and exercises the whole stack: management -> Postgres -> Redis ->
+  # evaluation -> SDK, plus the UI's /api proxy.
+  smoke:
+    runs-on: ubuntu-latest
+    needs: [management, evaluation, ui, sdk]
+    env:
+      ADMIN_API_TOKEN: ci-smoke-token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+        working-directory: sdk/js-sdk
+      - run: docker compose up --build -d
+      - run: node scripts/smoke.mjs
+      - if: failure()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down -v

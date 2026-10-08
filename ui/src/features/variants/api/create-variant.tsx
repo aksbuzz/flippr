@@ -86,9 +86,10 @@ export const useCreateVariant = ({ mutationConfig }: UseMutationConfig = {}) => 
 
   return useMutation({
     onSuccess: (data, ...args) => {
-      queryClient.refetchQueries({
+      queryClient.invalidateQueries({
         queryKey: getVariantsQueryOptions(data.data.feature_flag_id).queryKey,
       });
+      queryClient.invalidateQueries({ queryKey: ['flags'] });
       queryClient.refetchQueries({
         queryKey: getFlagQueryOptions(projectId, args[0].flagId).queryKey,
       });

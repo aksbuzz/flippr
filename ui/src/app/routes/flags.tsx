@@ -4,13 +4,13 @@ import { ContentLayout } from '../../components/layouts/ContentLayout';
 import { CreateFlag } from '../../features/flags/components/create';
 import { ListFlags } from '../../features/flags/components/list';
 import { getFlagsQueryOptions } from '../../features/flags/api/get-flags';
+import { useParams } from 'react-router-dom';
 import type { LoaderFunctionArgs } from 'react-router';
 import { useDocumentTitle } from '../../hooks';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const clientLoader =
   (queryClient: QueryClient) =>
-  () =>
   async ({ params }: LoaderFunctionArgs) => {
     const projectId = params.projectId as string
 
@@ -20,6 +20,7 @@ export const clientLoader =
 
 const FlagsRoutes = () => {
   useDocumentTitle('Flippr - Flags')
+  const projectId = useParams().projectId as string;
 
   return (
     <ContentLayout title="Flags" subTitle='Manage your feature flags'>
@@ -27,7 +28,7 @@ const FlagsRoutes = () => {
         <CreateFlag />
       </div>
       <div className="mt-4">
-        <ListFlags />
+        <ListFlags key={projectId} />
       </div>
     </ContentLayout>
   );

@@ -2,16 +2,17 @@ import { randomUUID } from 'crypto';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
 
+// Structured JSON in production; human-readable output elsewhere.
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  transport: {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'SYS:standard',
-      ignore: 'pid,hostname',
-    },
-  },
+  ...(process.env.NODE_ENV === 'production'
+    ? {}
+    : {
+        transport: {
+          target: 'pino-pretty',
+          options: { colorize: true, translateTime: 'SYS:standard', ignore: 'pid,hostname' },
+        },
+      }),
 });
 
 const httpLogger = pinoHttp({

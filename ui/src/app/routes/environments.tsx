@@ -4,13 +4,13 @@ import { ContentLayout } from '../../components/layouts/ContentLayout';
 import { CreateEnvironment } from '../../features/environments/components/create';
 import { ListEnvironments } from '../../features/environments/components/list';
 import { getEnvironmentsQueryOptions } from '../../features/environments/api/get-environments';
+import { useParams } from 'react-router-dom';
 import type { LoaderFunctionArgs } from 'react-router';
 import { useDocumentTitle } from '../../hooks';
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const clientLoader =
   (queryClient: QueryClient) =>
-  () =>
   async ({ params }: LoaderFunctionArgs) => {
     const projectId = params.projectId as string;
 
@@ -20,6 +20,7 @@ export const clientLoader =
 
 const EnvironmentsRoutes = () => {
   useDocumentTitle('Flippr - Environments');
+  const projectId = useParams().projectId as string;
 
   return (
     <ContentLayout title="Environments" subTitle="Manage your environments">
@@ -27,7 +28,7 @@ const EnvironmentsRoutes = () => {
         <CreateEnvironment />
       </div>
       <div className="mt-4">
-        <ListEnvironments />
+        <ListEnvironments key={projectId} />
       </div>
     </ContentLayout>
   );

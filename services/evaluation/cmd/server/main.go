@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/aksbuzz/flippr/services/evaluation/internal/api"
@@ -18,34 +21,56 @@ func main() {
 
 	redisClient, err := config.NewRedisClient(cfg.Redis)
 	if err != nil {
-		slog.Error("Failed to connect to Redis", "err", err)
+		slog.Error("Failed to create Redis client", "err", err)
 		os.Exit(1)
 	}
 	defer redisClient.Close()
 
-	ctx, cancel := context.WithTimeout((context.Background()), 5*time.Second)
-	defer cancel()
-	if err := redisClient.Ping(ctx).Err(); err != nil {
+	pingCtx, cancelPing := context.WithTimeout(context.Background(), 5*time.Second)
+	err = redisClient.Ping(pingCtx).Err()
+	cancelPing()
+	if err != nil {
 		slog.Error("Failed to connect to Redis", "err", err)
 		os.Exit(1)
 	}
-
 	slog.Info("Connected to Redis")
 
-	router := api.LogginMiddleware(api.NewRouter(redisClient), logger)
+	handler := api.LoggingMiddleware(
+		api.CORS(api.NewRouter(redisClient), cfg.Server.CORSAllowedOrigins),
+		logger,
+	)
 
 	server := &http.Server{
 		Addr:         cfg.Server.Address,
-		Handler:      router,
+		Handler:      handler,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  15 * time.Second,
 	}
 
-	slog.Info("Starting server", "port", cfg.Server.Address)
+	// Stop on SIGINT/SIGTERM and let in-flight requests finish.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		slog.Error("Could not listen on %s: %v", cfg.Server.Address, err)
-		os.Exit(1)
+	serverErr := make(chan error, 1)
+	go func() {
+		slog.Info("Starting server", "addr", cfg.Server.Address, "cors_origins", cfg.Server.CORSAllowedOrigins)
+		serverErr <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Could not listen", "addr", cfg.Server.Address, "err", err)
+			os.Exit(1)
+		}
+	case <-ctx.Done():
+		slog.Info("Shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			slog.Error("Graceful shutdown failed", "err", err)
+			os.Exit(1)
+		}
 	}
 }

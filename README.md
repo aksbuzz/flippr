@@ -8,7 +8,7 @@ Flippr is a feature flagging service that helps developers release features safe
 
 ## Core Features
 
-*   **Dynamic Configuration & Toggling:**  Instantly enable or disable features with a simple switch.
+*   **Dynamic Configuration & Toggling:**  Enable or disable features with a simple switch. Changes are visible to the evaluation API immediately; SDK clients pick them up after their cache TTL (5 minutes by default).
 * **Multivariate Flags (Variants)**: Serve different string, number, or JSON values to your users for A/B testing, phased rollouts, and remote configuration.
 *   **Multiple Environments:** Manage flags for `development`, `staging`, and `production` and more separately.
 *   **Fast Evaluation:** A high-speed API for checking flag status with very low latency.
@@ -47,21 +47,42 @@ You will need Docker installed locally.
     ```
 
 2.  **Set up environment variables:**
-    Each service needs its own `.env` file. Copy the example files:
+    Copy the root example file and set a secret admin token (required; it protects the management API):
     ```bash
-    cp services/management-api/.env.example services/management-api/.env
-    cp services/evaluation-api/.env.example services/evaluation-api/.env
+    cp .env.example .env
+    # edit .env and set ADMIN_API_TOKEN, e.g. the output of: openssl rand -hex 32
     ```
+    The per-service `.env.example` files in `services/management` and `services/evaluation` are only
+    for running a service outside Docker.
 
 3.  **Run with Docker Compose:**
     ```bash
-    docker-compose up --build
+    docker compose up --build
     ```
 
 4.  **Access the services:**
-    *   **Management UI:** `http://localhost`
-    *   **Management API (Node.js):** `http://localhost:4000`
+    *   **Management UI:** `http://localhost` (asks for the admin token on first use)
+    *   **Management API (Node.js):** `http://localhost:4000` (loopback only)
     *   **Evaluation API (Go):** `http://localhost:8080`
+
+    Postgres and Redis are published on `127.0.0.1` only, Redis requires a password, and the
+    UI proxies `/api` to the management API.
+
+5.  **Verify everything end to end (optional):**
+    ```bash
+    (cd sdk/js-sdk && npm ci && npm run build)
+    ADMIN_API_TOKEN=<your token> node scripts/smoke.mjs
+    ```
+
+### Upgrading an existing database
+
+`init.sql` only runs on an empty database. If you created your database before the integrity
+constraints were added, apply the upgrade once (it is idempotent; it fails, and tells you how to
+find offenders, if existing data violates a constraint):
+
+```bash
+docker exec -i flippr_postgres psql -U flippr_user -d flippr_db -v ON_ERROR_STOP=1 < migrations/001_integrity_constraints.sql
+```
 
 ## API Usage Examples
 
@@ -131,9 +152,11 @@ The API returns a JSON object with a single value key, which can hold a boolean,
 ```javascript
 import { FlipprClient } from 'flippr-sdk';
 
-const flippr = new FlipprClient({ 
+const flippr = new FlipprClient({
     sdkKey: 'prod_abc123...',
-    baseUrl: 'http://localhost:8080'
+    baseUrl: 'http://localhost:8080', // root of the evaluation service
+    // cacheTTLSeconds: 300 (default): a toggle can take up to this long to reach a running client
+    // timeoutMs: 2000 (default)
 });
 
 // Example 1: Getting a string variant for an A/B test

@@ -20,7 +20,7 @@ export const CreateEnvironment = () => {
   const [formState, setFormState] = useState<CreateEnvironmentSchema>({ name: '' });
   const [errors, setErrors] = useState<CreateEnvironmentSchema>({ name: '' });
 
-  async function handleSubmit() {
+  function handleSubmit() {
     const result = createEnvironmentSchema.safeParse(formState);
     if (!result.success) {
       const treeified = z.treeifyError(result.error);
@@ -30,9 +30,7 @@ export const CreateEnvironment = () => {
       setErrors({ name: '' });
     }
 
-    await createEnvironmentMutation.mutateAsync({ projectId, data: { name: formState.name } });
-
-    setFormState({ name: '' });
+    createEnvironmentMutation.mutate({ projectId, data: { name: formState.name } });
   }
 
   return (
@@ -42,13 +40,12 @@ export const CreateEnvironment = () => {
       onClose={() => {
         setFormState({ name: '' });
         setErrors({ name: '' });
+        createEnvironmentMutation.reset();
       }}
+      onSubmit={handleSubmit}
+      error={createEnvironmentMutation.error}
       submitButton={
-        <Button
-          type="submit"
-          onClick={handleSubmit}
-          isLoading={createEnvironmentMutation.isPending}
-        >
+        <Button type="submit" isLoading={createEnvironmentMutation.isPending}>
           Submit
         </Button>
       }

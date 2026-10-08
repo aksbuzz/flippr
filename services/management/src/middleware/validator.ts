@@ -35,7 +35,13 @@ export const validate =
       if (!queryResult.success) {
         errors.query = queryResult.error;
       } else {
-        req.query = queryResult.data as Record<string, string>;
+        // Express 5 exposes req.query as a getter-only property, so plain assignment throws.
+        Object.defineProperty(req, 'query', {
+          value: queryResult.data,
+          writable: true,
+          configurable: true,
+          enumerable: true,
+        });
       }
     }
 

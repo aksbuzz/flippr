@@ -4,7 +4,8 @@ import type { FlagVariant } from '../../../types/api';
 import type { QueryConfig } from '../../../lib/react-query';
 
 export const getVariants = ({ flagId }: { flagId: string }): Promise<{ data: FlagVariant[] }> => {
-  return api.get(`/flags/${flagId}/variants`);
+  // variants are not paged in the UI: ask for the maximum page size
+  return api.get(`/flags/${flagId}/variants`, { params: { limit: 100, offset: 0 } });
 };
 
 export function getVariantsQueryOptions(flagId: string) {

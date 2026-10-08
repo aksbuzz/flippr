@@ -1,12 +1,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { MutationConfig } from '../../../lib/react-query';
-import { getProjectsQueryOptions } from './get-projects';
 import { z } from 'zod';
 import { api } from '../../../lib/api-client';
 import type { Project } from '../../../types/api';
 
 export const createProjectSchema = z.object({
-  name: z.string().min(1, 'Project name is required'),
+  name: z
+    .string()
+    .min(1, 'Project name is required')
+    .max(100, 'Project name must be at most 100 characters'),
 });
 
 export type CreateProjectSchema = z.infer<typeof createProjectSchema>;
@@ -26,9 +28,7 @@ export const useCreateProject = ({ mutationConfig }: UseMutationConfig = {}) => 
 
   return useMutation({
     onSuccess: (...args) => {
-      queryClient.refetchQueries({
-        queryKey: getProjectsQueryOptions().queryKey,
-      });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       onSuccess?.(...args);
     },
     ...restConfig,

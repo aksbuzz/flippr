@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { useParams, type LoaderFunctionArgs } from 'react-router-dom';
 import { ContentLayout } from '../../components/layouts/ContentLayout';
+import { ErrorPanel } from '../../components/ui/ErrorPanel';
 import { Spinner } from '../../components/ui/Spinner';
 import { Tabs } from '../../components/ui/Tabs';
 import { getFlagQueryOptions, useFlag } from '../../features/flags/api/get-flag';
@@ -13,7 +14,6 @@ import { ListEnvironmentMapping } from '../../features/flags/components/environm
 // eslint-disable-next-line react-refresh/only-export-components
 export const clientLoader =
   (queryClient: QueryClient) =>
-  () =>
   async ({ params }: LoaderFunctionArgs) => {
     const projectId = params.projectId as string;
     const flagId = params.flagId as string;
@@ -36,6 +36,21 @@ const FlagRoutes = () => {
       <div className="flex h-48 w-full items-center justify-center">
         <Spinner size="lg" />
       </div>
+    );
+  }
+
+  if (flagQuery.isError) {
+    return (
+      <ContentLayout title="Flag" subTitle="Manage your flag variants and environments">
+        <div className="mt-4">
+          <ErrorPanel
+            title="Could not load flag"
+            error={flagQuery.error}
+            onRetry={() => flagQuery.refetch()}
+            isRetrying={flagQuery.isFetching}
+          />
+        </div>
+      </ContentLayout>
     );
   }
 
@@ -67,7 +82,7 @@ const FlagRoutes = () => {
               label: 'Environment Mapping',
               content: (
                 <>
-                  <ListEnvironmentMapping flag={flag} />
+                  <ListEnvironmentMapping key={flag.id} flag={flag} />
                 </>
               ),
             },

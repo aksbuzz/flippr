@@ -1,20 +1,24 @@
 import { Flag, Folder, Settings } from 'lucide-react';
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { ErrorPanel } from '../../../components/ui/ErrorPanel';
+import { PaginationControls } from '../../../components/ui/Pagination';
+import { PAGE_SIZE } from '../../../lib/pagination';
 import { cn } from '../../../utils/cn';
 import { useProjects } from '../api/get-projects';
 import { CreateProject } from './create';
 
 export const ListProjects = () => {
   const location = useLocation();
-  const projectsQuery = useProjects();
+  const [offset, setOffset] = useState(0);
+  const projectsQuery = useProjects({ limit: PAGE_SIZE, offset });
 
   if (projectsQuery.isLoading) {
     return <div className="px-2 text-sm text-gray-500">Loading projects...</div>;
   }
 
   const projects = projectsQuery.data?.data;
-
-  if (!projects) return <div className="px-2 text-sm text-gray-500">No projects yet.</div>;
+  const pagination = projectsQuery.data?.pagination;
 
   return (
     <div className="py-2 w-full">
@@ -23,8 +27,21 @@ export const ListProjects = () => {
         <CreateProject />
       </div>
 
+      {projectsQuery.isError && (
+        <ErrorPanel
+          title="Could not load projects"
+          error={projectsQuery.error}
+          onRetry={() => projectsQuery.refetch()}
+          isRetrying={projectsQuery.isFetching}
+        />
+      )}
+
+      {projects && projects.length === 0 && offset === 0 && (
+        <div className="px-2 text-sm text-gray-500">No projects yet. Use + to create one.</div>
+      )}
+
       <div className="flex flex-col gap-1">
-        {projects.map(project => {
+        {(projects ?? []).map(project => {
           const isProjectActive = location.pathname.startsWith(`/projects/${project.id}`);
 
           return (
@@ -73,6 +90,18 @@ export const ListProjects = () => {
           );
         })}
       </div>
+
+      {pagination && projects && (
+        <PaginationControls
+          compact
+          total={pagination.total}
+          limit={pagination.limit}
+          offset={pagination.offset}
+          count={projects.length}
+          onChange={setOffset}
+          disabled={projectsQuery.isFetching}
+        />
+      )}
     </div>
   );
 };

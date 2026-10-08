@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -89,14 +89,14 @@ func (h *FlagEvaluationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		log.Printf("ERROR: Redis GET comman failed for key '%s': %v", redisKey, err)
+		slog.Error("Redis GET failed", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
 	var data interface{}
 	if err := json.Unmarshal([]byte(val), &data); err != nil {
-		log.Printf("ERROR: Failed to unmarshal data for key '%s', value %v, error: %v", redisKey, val, err)
+		slog.Error("Failed to decode cached value", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -117,7 +117,7 @@ func composeResponse(w http.ResponseWriter, value interface{}) {
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(FlagEvaluationResponse{Value: value}); err != nil {
-		log.Printf("ERROR: Failed to encode response: %v", err)
+		slog.Error("Failed to encode response", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }

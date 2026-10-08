@@ -1,9 +1,14 @@
 import { Settings } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/Button';
 import { Chip } from '../../../components/ui/Chip';
 import { DataTable } from '../../../components/ui/DataTable';
+import { EmptyState } from '../../../components/ui/EmptyState';
+import { ErrorPanel } from '../../../components/ui/ErrorPanel';
+import { PaginationControls } from '../../../components/ui/Pagination';
 import { Spinner } from '../../../components/ui/Spinner';
+import { PAGE_SIZE } from '../../../lib/pagination';
 import { useFlags } from '../api/get-flags';
 
 export const ListFlags = () => {
@@ -11,7 +16,8 @@ export const ListFlags = () => {
   const params = useParams();
 
   const projectId = params.projectId as string;
-  const flagsQuery = useFlags({ projectId });
+  const [offset, setOffset] = useState(0);
+  const flagsQuery = useFlags({ projectId, limit: PAGE_SIZE, offset });
 
   if (flagsQuery.isLoading) {
     return (
@@ -21,8 +27,30 @@ export const ListFlags = () => {
     );
   }
 
+  if (flagsQuery.isError) {
+    return (
+      <ErrorPanel
+        title="Could not load flags"
+        error={flagsQuery.error}
+        onRetry={() => flagsQuery.refetch()}
+        isRetrying={flagsQuery.isFetching}
+      />
+    );
+  }
+
   const flags = flagsQuery.data?.data;
   if (!flags) return null;
+
+  const pagination = flagsQuery.data?.pagination;
+
+  if (flags.length === 0 && offset === 0) {
+    return (
+      <EmptyState
+        title="No flags yet"
+        description="Create your first feature flag to get started."
+      />
+    );
+  }
 
   return (
     <div className="container mx-auto py-8">
@@ -77,6 +105,16 @@ export const ListFlags = () => {
           },
         ]}
       />
+      {pagination && (
+        <PaginationControls
+          total={pagination.total}
+          limit={pagination.limit}
+          offset={pagination.offset}
+          count={flags.length}
+          onChange={setOffset}
+          disabled={flagsQuery.isFetching}
+        />
+      )}
     </div>
   );
 };

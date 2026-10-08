@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { Spinner } from '../components/ui/Spinner';
 import { ErrorBoundary } from 'react-error-boundary';
 import { GlobalErrorFallback } from '../components/errors/main';
+import { AuthDialog } from '../components/auth/AuthDialog';
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = useState(
@@ -31,6 +32,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         <QueryClientProvider client={queryClient}>
           {/* Notifications */}
           {children}
+          <AuthDialog />
         </QueryClientProvider>
       </ErrorBoundary>
     </Suspense>

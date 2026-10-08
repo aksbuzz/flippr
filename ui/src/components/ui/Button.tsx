@@ -39,9 +39,14 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
 export type IconButtonProps = Omit<ButtonProps, 'variant' | 'size' | 'isLoading'>;
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, children, size, isLoading, ...props }, ref) => {
+  ({ className, variant, children, size, isLoading, disabled, ...props }, ref) => {
     return (
-      <button className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>
+      <button
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+        disabled={disabled || isLoading}
+      >
         {isLoading && <Spinner size="sm" className="text-current" />}
         <span className="mx-2">{children}</span>
       </button>

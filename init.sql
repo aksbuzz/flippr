@@ -5,7 +5,8 @@ CREATE TYPE flag_type AS ENUM ('boolean', 'number', 'string', 'json');
 CREATE TABLE IF NOT EXISTS projects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_project_name UNIQUE (name)
 );
 
 CREATE TABLE IF NOT EXISTS environments (
@@ -13,7 +14,9 @@ CREATE TABLE IF NOT EXISTS environments (
   project_id UUID NOT NULL,
   name VARCHAR(255) NOT NULL, -- dev, staging, production
   sdk_key VARCHAR(255) NOT NULL, -- secret sdk key for this environment
-  FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
+  FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE,
+  CONSTRAINT unique_environment_name_per_project UNIQUE (project_id, name),
+  CONSTRAINT unique_environment_sdk_key UNIQUE (sdk_key)
 );
 
 CREATE TABLE IF NOT EXISTS feature_flags (
@@ -39,7 +42,9 @@ CREATE TABLE IF NOT EXISTS feature_flag_variants (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (feature_flag_id) REFERENCES feature_flags (id) ON DELETE CASCADE,
-  CONSTRAINT unique_variant_key_per_flag UNIQUE (feature_flag_id, key)
+  CONSTRAINT unique_variant_key_per_flag UNIQUE (feature_flag_id, key),
+  -- target of the composite FK in environment_flag_states: a flag can only serve its own variants
+  CONSTRAINT unique_variant_id_per_flag UNIQUE (feature_flag_id, id)
 );
 
 CREATE TABLE IF NOT EXISTS environment_flag_states (
@@ -51,7 +56,9 @@ CREATE TABLE IF NOT EXISTS environment_flag_states (
   
   FOREIGN KEY (environment_id) REFERENCES environments (id) ON DELETE CASCADE,
   FOREIGN KEY (feature_flag_id) REFERENCES feature_flags (id) ON DELETE CASCADE,
-  FOREIGN KEY (serving_variant_id) REFERENCES feature_flag_variants (id),
+  CONSTRAINT environment_flag_states_own_variant_fk
+    FOREIGN KEY (feature_flag_id, serving_variant_id)
+    REFERENCES feature_flag_variants (feature_flag_id, id),
   CONSTRAINT unique_environment_flag UNIQUE (environment_id, feature_flag_id),
   CONSTRAINT enabled_requires_variant CHECK (is_enabled = FALSE OR serving_variant_id IS NOT NULL)
 );

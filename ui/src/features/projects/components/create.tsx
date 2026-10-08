@@ -17,7 +17,7 @@ export const CreateProject = () => {
   const [formState, setFormState] = useState<CreateProjectSchema>({ name: '' });
   const [errors, setErrors] = useState<CreateProjectSchema>({ name: '' });
 
-  async function handleSubmit() {
+  function handleSubmit() {
     const result = createProjectSchema.safeParse(formState);
     if (!result.success) {
       const treeified = z.treeifyError(result.error);
@@ -27,9 +27,7 @@ export const CreateProject = () => {
       setErrors({ name: '' });
     }
 
-    await createProjectMutation.mutateAsync({ data: { name: formState.name } });
-
-    setFormState({ name: '' });
+    createProjectMutation.mutate({ data: { name: formState.name } });
   }
 
   return (
@@ -43,9 +41,12 @@ export const CreateProject = () => {
       onClose={() => {
         setFormState({ name: '' });
         setErrors({ name: '' });
+        createProjectMutation.reset();
       }}
+      onSubmit={handleSubmit}
+      error={createProjectMutation.error}
       submitButton={
-        <Button type="submit" onClick={handleSubmit} isLoading={createProjectMutation.isPending}>
+        <Button type="submit" isLoading={createProjectMutation.isPending}>
           Submit
         </Button>
       }
