@@ -1,11 +1,24 @@
 import crypto from 'crypto';
+import { logger } from '../../common';
 import { ConflictError, NotFoundError } from '../../common/errors';
+import { syncEnvironment, syncFlag } from '../flags/flag-cache';
 import { db } from '../../config/database';
-import { projectTasksQueue } from '../../config/queue';
 import { Environment } from '../../db/models/environment';
 import { FeatureFlag } from '../../db/models/feature-flag';
 import { Project } from '../../db/models/project';
 import { CreateEnvironment, CreateFlag, CreateProject } from './projects.types';
+
+const PG_UNIQUE_VIOLATION = '23505';
+
+// Best-effort cache write after a commit. The row is already durable in PostgreSQL, and the
+// periodic cache rebuild (ADR 0015) repairs a missed write, so this must not fail the request.
+async function syncQuietly(what: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (err) {
+    logger.warn({ err }, `Could not write ${what} to Redis; the next cache rebuild will repair it`);
+  }
+}
 
 interface FlagResponse extends Omit<FeatureFlag, 'description' | 'off_value'> {
   environments: { id: string; is_enabled: boolean }[];
@@ -21,7 +34,7 @@ export class ProjectsService {
         [data.name]
       );
     } catch (err: any) {
-      if (err.code === '23505') {
+      if (err.code === PG_UNIQUE_VIOLATION) {
         throw new ConflictError(`Project "${data.name}" already exists`);
       }
       throw err;
@@ -31,7 +44,7 @@ export class ProjectsService {
   async getProjects(limit: number, offset: number) {
     const [data, count] = await Promise.all([
       db.manyOrNone<Project>(
-        `SELECT id, name, created_at FROM projects ORDER BY id ASC LIMIT $1 OFFSET $2`,
+        `SELECT id, name, created_at FROM projects ORDER BY created_at ASC, id ASC LIMIT $1 OFFSET $2`,
         [limit, offset]
       ),
       db.one<{ total: string }>(`SELECT COUNT(*) AS total FROM projects`),
@@ -45,19 +58,35 @@ export class ProjectsService {
     ]);
     if (!exists) throw new NotFoundError('Project not found');
 
-    const sdkKey = `${data.name}_sdk_key_${projectId}_${crypto.randomBytes(16).toString('hex')}`;
-    const newEnvironment = await db.one<Environment>(
-      `INSERT INTO environments (project_id, name, sdk_key)
-       VALUES ($1, $2, $3)
-       RETURNING id, project_id, name, sdk_key`,
-      [projectId, data.name, sdkKey]
-    );
+    // The name is validated to a safe character set; spaces would break the key, so use "-".
+    const slug = data.name.replace(/\s+/g, '-');
+    const sdkKey = `${slug}_sdk_key_${projectId}_${crypto.randomBytes(16).toString('hex')}`;
 
-    await projectTasksQueue.add(
-      'link-new-environment',
-      { environmentId: newEnvironment.id, projectId: projectId },
-      { removeOnComplete: true, removeOnFail: 50 }
-    );
+    // Create the environment and its state rows for every existing flag atomically.
+    const newEnvironment = await db
+      .tx(async tx => {
+        const env = await tx.one<Environment>(
+          `INSERT INTO environments (project_id, name, sdk_key)
+           VALUES ($1, $2, $3)
+           RETURNING id, project_id, name, sdk_key`,
+          [projectId, data.name, sdkKey]
+        );
+        await tx.none(
+          `INSERT INTO environment_flag_states (environment_id, feature_flag_id, is_enabled)
+           SELECT $1, f.id, false FROM feature_flags f WHERE f.project_id = $2
+           ON CONFLICT (environment_id, feature_flag_id) DO NOTHING`,
+          [env.id, projectId]
+        );
+        return env;
+      })
+      .catch((err: any) => {
+        if (err.code === PG_UNIQUE_VIOLATION) {
+          throw new ConflictError(`Environment "${data.name}" already exists in this project`);
+        }
+        throw err;
+      });
+
+    await syncQuietly('environment flags', () => syncEnvironment(db, newEnvironment.id));
 
     return newEnvironment;
   }
@@ -68,7 +97,7 @@ export class ProjectsService {
         `SELECT id, sdk_key, project_id, name
          FROM environments
          WHERE project_id = $1
-         ORDER BY id ASC LIMIT $2 OFFSET $3`,
+         ORDER BY name ASC, id ASC LIMIT $2 OFFSET $3`,
         [projectId, limit, offset]
       ),
       db.one<{ total: string }>(
@@ -80,33 +109,45 @@ export class ProjectsService {
   }
 
   async createFlag(projectId: string, data: CreateFlag) {
-    return db.tx<FeatureFlag>(async tx => {
-      const project = await tx.oneOrNone<Project>(`SELECT id FROM projects WHERE id = $1`, [
-        projectId,
-      ]);
-      if (!project) throw new NotFoundError('Project not found');
+    const flag = await db
+      .tx<FeatureFlag>(async tx => {
+        const project = await tx.oneOrNone<Project>(`SELECT id FROM projects WHERE id = $1`, [
+          projectId,
+        ]);
+        if (!project) throw new NotFoundError('Project not found');
 
-      const flag = await tx.one<FeatureFlag>(
-        `
-        INSERT INTO feature_flags 
-          (project_id, name, key, description, flag_type, off_value, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        RETURNING id, project_id, key, description, created_at`,
-        [projectId, data.name, data.key, data.description, data.flag_type, data.off_value]
-      );
+        const created = await tx.one<FeatureFlag>(
+          `
+          INSERT INTO feature_flags
+            (project_id, name, key, description, flag_type, off_value, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, NOW())
+          RETURNING id, project_id, name, key, description, flag_type, created_at`,
+          [projectId, data.name, data.key, data.description, data.flag_type, data.off_value]
+        );
 
-      await tx.none(
-        `
-        INSERT INTO environment_flag_states 
-          (environment_id, feature_flag_id, is_enabled)
-        SELECT e.id, $1, false
-        FROM environments e WHERE e.project_id = $2
-        `,
-        [flag.id, projectId]
-      );
+        await tx.none(
+          `
+          INSERT INTO environment_flag_states
+            (environment_id, feature_flag_id, is_enabled)
+          SELECT e.id, $1, false
+          FROM environments e WHERE e.project_id = $2
+          `,
+          [created.id, projectId]
+        );
 
-      return flag;
-    });
+        return created;
+      })
+      .catch((err: any) => {
+        if (err.code === PG_UNIQUE_VIOLATION) {
+          throw new ConflictError(`Flag key "${data.key}" already exists in this project`);
+        }
+        throw err;
+      });
+
+    // Seed Redis so the flag evaluates to its off_value right away instead of null.
+    await syncQuietly('flag', () => syncFlag(db, flag.id));
+
+    return flag;
   }
 
   async getFlags(projectId: string, limit: number, offset: number) {
@@ -116,7 +157,7 @@ export class ProjectsService {
         [projectId]
       ),
       db.manyOrNone(
-        `SELECT id FROM feature_flags WHERE project_id = $1 ORDER BY id ASC LIMIT $2 OFFSET $3`,
+        `SELECT id FROM feature_flags WHERE project_id = $1 ORDER BY name ASC, id ASC LIMIT $2 OFFSET $3`,
         [projectId, limit, offset]
       ),
     ]);
@@ -164,7 +205,9 @@ export class ProjectsService {
       }
     }
 
-    return { data: Object.values(grouped), total: parseInt(count.total, 10) };
+    // Keep the page order chosen by the paginated query above.
+    const ordered = flagIds.map((id: string) => grouped[id]).filter(Boolean);
+    return { data: ordered, total: parseInt(count.total, 10) };
   }
 
   async getFlag(projectId: string, flagId: string) {

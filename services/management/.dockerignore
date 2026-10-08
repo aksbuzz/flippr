@@ -6,4 +6,3 @@ tests
 .git
 .gitignore
 vitest.config.ts
-tsconfig.json

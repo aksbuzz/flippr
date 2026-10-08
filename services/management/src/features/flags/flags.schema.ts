@@ -1,6 +1,19 @@
 import { z } from 'zod';
+import { tryParseJson } from './flag-values';
 
-const flagVariantKeySchema = z.string().min(1, 'Flag variant key is required');
+export const jsonStringSchema = (field: string) =>
+  z
+    .string()
+    .max(65536, `${field} must be at most 64 KB`)
+    .refine(value => tryParseJson(value).ok, {
+      message: `${field} must be a valid JSON string (e.g. "true", "123", "\\"hello\\"", "{\\"key\\":\\"value\\"}")`,
+    });
+
+const flagVariantKeySchema = z
+  .string()
+  .trim()
+  .min(1, 'Flag variant key is required')
+  .max(255, 'Flag variant key must be at most 255 characters');
 const flagIdSchema = z.string().uuid();
 
 /** Get flag variants */
@@ -10,21 +23,8 @@ export const getFlagVariantsParamsSchema = z.object({ flagId: z.string().uuid() 
 export const createFlagVariantParamsSchema = getFlagVariantsParamsSchema;
 export const createFlagVariantBodySchema = z.object({
   key: flagVariantKeySchema,
-  value: z.string().refine(
-    value => {
-      try {
-        JSON.parse(value);
-        return true;
-      } catch (error) {
-        return false;
-      }
-    },
-    {
-      message:
-        'value must be a valid JSON string (e.g. "true", "123", "\\"hello\\"", "{\\"key\\":\\"value\\"}")',
-    }
-  ),
-  description: z.string().optional().default(''),
+  value: jsonStringSchema('value'),
+  description: z.string().max(255, 'description must be at most 255 characters').optional().default(''),
 });
 
 /** Delete flag variant */
@@ -37,7 +37,7 @@ export const deleteFlagVariantParamsSchema = z.object({
 export const updateFlagStateParamsSchema = z.object({
   flagId: flagIdSchema,
   environmentId: z.string().uuid(),
-})
+});
 export const updateFlagStateBodySchema = z.discriminatedUnion('is_enabled', [
   z.object({
     is_enabled: z.literal(true),

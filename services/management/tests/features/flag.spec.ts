@@ -64,8 +64,14 @@ describe('Flags Integration Tests', () => {
 
   describe('POST /api/v1/flags/:flagId/variants', () => {
     it('should return 201 and create a new variant', async () => {
+      // ARRANGE: variant values must match the flag type, so use a string flag
+      const stringFlag = await request(app)
+        .post(`/api/v1/projects/${projectId}/flags`)
+        .send({ name: 'String Flag', key: 'string_flag', flag_type: 'string', off_value: '"off"' });
+      const stringFlagId = stringFlag.body.data.id;
+
       // ACT
-      const response = await request(app).post(`/api/v1/flags/${flagId}/variants`).send({
+      const response = await request(app).post(`/api/v1/flags/${stringFlagId}/variants`).send({
         key: 'new-variant',
         value: '"new-value"',
         description: 'A new variant',
@@ -77,7 +83,7 @@ describe('Flags Integration Tests', () => {
       expect(response.body.data.key).toBe('new-variant');
       expect(response.body.data.value).toBe('new-value');
       expect(response.body.data.description).toBe('A new variant');
-      expect(response.body.data.feature_flag_id).toBe(flagId);
+      expect(response.body.data.feature_flag_id).toBe(stringFlagId);
     });
 
     it('should return 400 for invalid JSON value', async () => {
@@ -116,32 +122,42 @@ describe('Flags Integration Tests', () => {
       expect(response.status).toBe(404);
     });
 
-    it('should accept JSON values of different types', async () => {
+    it('should accept JSON values of every type on a flag of that type', async () => {
       // ARRANGE
       const testCases = [
-        { value: 'true', expected: true, description: 'Boolean true' },
-        { value: 'false', expected: false, description: 'Boolean false' },
-        { value: '123', expected: 123, description: 'Number' },
-        { value: '"string"', expected: 'string', description: 'String' },
-        { value: '{"key":"value"}', expected: { key: 'value' }, description: 'Object' },
-        { value: '[1,2,3]', expected: [1, 2, 3], description: 'Array' },
-        { value: 'null', expected: null, description: 'Null' },
+        { type: 'boolean', value: 'true', expected: true },
+        { type: 'boolean', value: 'false', expected: false },
+        { type: 'number', value: '123', expected: 123 },
+        { type: 'string', value: '"string"', expected: 'string' },
+        { type: 'json', value: '{"key":"value"}', expected: { key: 'value' } },
+        { type: 'json', value: '[1,2,3]', expected: [1, 2, 3] },
       ];
+      const flagIds: Record<string, string> = {};
+      for (const type of ['boolean', 'number', 'string', 'json']) {
+        const offValue = { boolean: 'false', number: '0', string: '""', json: '{}' }[type];
+        const created = await request(app)
+          .post(`/api/v1/projects/${projectId}/flags`)
+          .send({ name: `Typed ${type}`, key: `typed_${type}`, flag_type: type, off_value: offValue });
+        flagIds[type] = created.body.data.id;
+      }
 
-      for (const testCase of testCases) {
+      for (const [i, testCase] of testCases.entries()) {
         // ACT
         const response = await request(app)
-          .post(`/api/v1/flags/${flagId}/variants`)
-          .send({
-            key: `variant-${testCase.description.toLowerCase().replace(/\s/g, '-')}`,
-            value: testCase.value,
-            description: testCase.description,
-          });
+          .post(`/api/v1/flags/${flagIds[testCase.type]}/variants`)
+          .send({ key: `variant-${i}`, value: testCase.value });
 
         // ASSERT
         expect(response.status).toBe(201);
         expect(response.body.data.value).toEqual(testCase.expected);
       }
+    });
+
+    it('should return 400 when the value does not match the flag type', async () => {
+      const response = await request(app)
+        .post(`/api/v1/flags/${flagId}/variants`)
+        .send({ key: 'wrong-type', value: '"not a boolean"' });
+      expect(response.status).toBe(400);
     });
   });
 

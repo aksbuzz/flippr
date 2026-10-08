@@ -2,9 +2,12 @@ import IORedis from 'ioredis';
 import { config } from '.';
 import { logger } from '../common';
 
-const redisURL = `redis://${config.redis.host}:${config.redis.port}`;
-
-export const redisClient = new IORedis(redisURL, { maxRetriesPerRequest: null });
+export const redisClient = new IORedis({
+  host: config.redis.host,
+  port: config.redis.port,
+  password: config.redis.password,
+  maxRetriesPerRequest: null,
+});
 
 redisClient.on('connect', () => {
   logger.info('Connected to Redis');
